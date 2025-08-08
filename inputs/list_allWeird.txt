@@ -1,0 +1,61 @@
+Scientific.Name	Issue
+ANTHO (ACARNIA) ILLGI	Non-alphanumeric characters
+ANTHO (ACARNIA) KARYKINA	Non-alphanumeric characters
+ARICIDEA (ACMIRA) CATHERINAE	Non-alphanumeric characters
+ARICIDEA (ACMIRA) CERRUTII	Non-alphanumeric characters
+ARICIDEA (ACMIRA) HORIKOSHII	Non-alphanumeric characters
+ARICIDEA (ACMIRA) LOPEZI	Non-alphanumeric characters
+ARICIDEA (ACMIRA) RUBRA	Non-alphanumeric characters
+ARICIDEA (ACMIRA) SIMPLEX	Non-alphanumeric characters
+ARICIDEA (ACMIRA) SP SD1	Non-alphanumeric characters
+ARICIDEA (ACMIRA) TAYLORI	Non-alphanumeric characters
+ARICIDEA (AEDICIRA) PACIFICA	Non-alphanumeric characters
+ARICIDEA (ARICIDEA)	Non-alphanumeric characters
+ARICIDEA (ARICIDEA) PSEUDOARTICULATA	Non-alphanumeric characters
+ARICIDEA (ARICIDEA) WASSI	Non-alphanumeric characters
+ARICIDEA (STRELZOVIA)	Non-alphanumeric characters
+ARICIDEA (STRELZOVIA) ANTENNATA	Non-alphanumeric characters
+ARICIDEA (STRELZOVIA) HARTLEYI	Non-alphanumeric characters
+ARICIDEA (STRELZOVIA) MONICAE	Non-alphanumeric characters
+ARICIDEA (STRELZOVIA) QUADRILOBATA	Non-alphanumeric characters
+ASPIDOSIPHON (PARASPIDOSIPHON)	Non-alphanumeric characters
+CAPSELLA BURSA-PASTORIS	Non-alphanumeric characters
+CLATHRIA (CLATHRIA) ASODES	Non-alphanumeric characters
+CLATHRIA (MICROCIONA) MICROJOANNA	Non-alphanumeric characters
+CLATHRIA (MICROCIONA) PARTHENA	Non-alphanumeric characters
+CLATHRIA (MICROCIONA) PENNATA	Non-alphanumeric characters
+CLATHRIA (MICROCIONA) SPONGIGARTINA	Non-alphanumeric characters
+CLATHRIA (THALYSIAS) ORIGINALIS	Non-alphanumeric characters
+CLAVICEPS PURPUREA VAR. SPARTINAE	Non-alphanumeric characters
+CODIUM FRAGILE SSP. FRAGILE	Non-alphanumeric characters
+CORALLINE ALGAE -CRUSTOSE	Non-alphanumeric characters
+CRYPTOPLEURA/HYMENENA	Non-alphanumeric characters
+DORVILLEA (DORVILLEA)	Non-alphanumeric characters
+DORVILLEA (SCHISTOMERINGOS) ANNULATA	Non-alphanumeric characters
+DORVILLEA (SCHISTOMERINGOS) LONGICORNIS	Non-alphanumeric characters
+EPIGAMIA-MYRIANIDA	Non-alphanumeric characters
+GONIOTRICHUM CORNU-CERVI	Non-alphanumeric characters
+HALICLONA (FLAGELLIA) EDAPHUS	Non-alphanumeric characters
+HALICLONA (HALICHOCLONA) GELLINDRA	Non-alphanumeric characters
+HALICLONA (HALICLONA)	Non-alphanumeric characters
+HALICLONA (RHIZONIERA) ENAMELA	Non-alphanumeric characters
+LIMPETS 5-15 MM IN SIZE ON ALL SUBSTRATE	Non-alphanumeric characters
+LIMPETS OVER 15 MM IN SIZE ON ANY SUBSTRATE/ORGANISM	Non-alphanumeric characters
+NICOLEA. HARRIS	Non-alphanumeric characters
+NON-CORALLINE CRUSTS	Non-alphanumeric characters
+PILEOLARIA (PILEOLARIA) MARGINATA	Non-alphanumeric characters
+PROTOLAEOSPIRA (PROTOLAEOSPIRA) EXIMIA	Non-alphanumeric characters
+PROTOLAEOSPIRA (PROTOLAEOSPIRA) TRIFLABELLIS	Non-alphanumeric characters
+QUIETULA Y-CAUDA	Non-alphanumeric characters
+RASPAILIA (RASPAXILLA) HYLE	Non-alphanumeric characters
+SCOLELEPIS (PARASCOLELEPIS) TEXANA	Non-alphanumeric characters
+SCOLELEPIS (PARASCOLELEPIS) TRIDENTATA	Non-alphanumeric characters
+SCOLELEPIS (SCOLELEPIS) BULLIBRANCHIA	Non-alphanumeric characters
+SCOLELEPIS (SCOLELEPIS) OCCIDENTALIS	Non-alphanumeric characters
+SCOLELEPIS (SCOLELEPIS) SQUAMATA	Non-alphanumeric characters
+STYLONEMA CORNU-CERVI	Non-alphanumeric characters
+TEDANIA (TEDANIOPSIS) GURJANOVAE	Non-alphanumeric characters
+TRYPANOSYLLIS (TRYPANEDENTATA)	Non-alphanumeric characters
+UNKNOWN SPECIES A	Single letter tail
+UNKNOWN SPECIES H	Single letter tail
+VERTICAL RELIEF: SLIGHT	Non-alphanumeric characters

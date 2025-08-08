@@ -92,3 +92,5 @@ if (nrow(all_weird) == 0) {
   print(all_weird)
 }
 
+write.table(all_weird, file='list_allWeird.txt', sep='\t', quote=FALSE, row.names=FALSE, col.names = TRUE)
+

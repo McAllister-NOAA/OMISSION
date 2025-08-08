@@ -1,0 +1,107 @@
+---
+title: "Intertidal Species List Assemble"
+author: "Sean McAllister"
+date: "2025-08-08"
+output: html_document
+---
+
+# Load in Libraries
+```{r}
+library(tidyverse)
+library(here)
+library(readxl)
+```
+
+# Load in Data
+```{r}
+limpets <-  read_xlsx(here("inputs","Limpets","Limpets Data (transcribed from Website)_format.xlsx"))
+
+MARINe <-  read_xlsx(here("inputs","MARINe","Marine_zachary_gold_cbs_species_list_20240111_formatted.xlsx"))
+
+SCB_Isopods <-  read_xlsx(here("inputs","NHMLAC","SCB Isopods 2023_Species List_16May23 - Regina Wetzer_formatted.xlsx"))
+
+PISCO <-  read_xlsx(here("inputs","PISCO","PISCO species list_formatted.xlsx"))
+
+CA_seaweeds_KathyAnn <- read_csv(here("inputs", "CA_seaweeds", "kathy_ann_CA_names_MAY_2025_names_fixed_formatted.csv"))
+
+CA_seaweeds_UCBerkeley <- read_csv(here("inputs", "CA_seaweeds", "CA_seaweeds_names_fixed_formatted.csv"))
+
+FishCARD <- read_delim(here("inputs", "FishCARD", "CCLME_list_assembled_clean_formatted.txt"))
+
+CalNEMO <- read_csv(here("inputs", "CalNEMO", "nemesis_species_list_formatted.csv"))
+
+lightSmith_manual <- read_csv(here("inputs", "lights_manual", "Light & Smith Manual formatted.csv"))
+
+Marine_Inverts_CA <- read_csv(here("inputs", "Marine Inverts of CA", "Marine invertebrates of California_1746573275_formatted.csv"))
+
+MPA_baseline <- read_xlsx(here("inputs", "MPA_baseline", "mpa_baseline_formatted.xlsx"))
+
+SCAMIT <- read_csv(here("inputs", "SCAMIT", "SCAMIT_SpeciesEd12-20180703_formatted.csv"))
+
+colnames(SCAMIT)
+```
+
+# Format to only select key categories and drop all other ancillary information
+
+```{r}
+limpets_2_merge <- limpets %>% dplyr::select(`Project.Request`=`Project Request`,`Scientific.Name` =`Scientific Name`,`Point.of.Contact.for.Submission`=`Point of Contact for Submission`,`Email`,`Common.Name`=`Common Name`, `Survey.Type`=`Survey Type`)
+
+MARINe_2_merge <- MARINe %>% dplyr::select(`Project.Request`=`Project Request`,`Scientific.Name` =`Scientific name`,`Point.of.Contact.for.Submission`=`Point of Contact for Submission`,`Email`,`Common.Name`=`Common Name`, `Survey.Type`=`Survey Type`)
+
+SCB_Isopods_2_merge <- SCB_Isopods %>% dplyr::select(`Project.Request`=`Project Request`,`Scientific.Name` =`Scientific name`,`Point.of.Contact.for.Submission`=`Point of Contact for Submission`,`Email`,`Common.Name`=`Common Name`, `Survey.Type`=`Survey Type`)
+
+PISCO_2_merge <- PISCO %>% dplyr::select(`Project.Request`=`Project Request`,`Scientific.Name` =`Scientific name`,`Point.of.Contact.for.Submission`=`Point of Contact for Submission`,`Email`,`Common.Name`=`Common Name`, `Survey.Type`=`Survey Type`)
+
+CA_seaweeds_KathyAnn_2_merge <- CA_seaweeds_KathyAnn %>% dplyr::select(`Project.Request`=`Project Request`,`Scientific.Name` =`Scientific Name`,`Point.of.Contact.for.Submission`=`Point of Contact for Submission`,`Email`,`Common.Name`=`Common Name`, `Survey.Type`=`Survey Type`)
+
+CA_seaweeds_UCBerkeley_2_merge <- CA_seaweeds_UCBerkeley %>% dplyr::select(`Project.Request`=`Project Request`,`Scientific.Name` =`Scientific Name`,`Point.of.Contact.for.Submission`=`Point of Contact for Submission`,`Email`,`Common.Name`=`Common Name`, `Survey.Type`=`Survey Type`)
+
+FishCARD_2_merge <- FishCARD %>% dplyr::select(`Project.Request`=`Project Requested`,`Scientific.Name` =`scientific_name`,`Point.of.Contact.for.Submission`=`Point of Contact for Submission`,`Email`,`Common.Name`=`Common Name`, `Survey.Type`=`Survey Type`)
+
+CalNEMO_2_merge <- CalNEMO %>% dplyr::select(`Project.Request`=`Project Requested`,`Scientific.Name` =`scientific_name`,`Point.of.Contact.for.Submission`=`Point of Contact for Submission`,`Email`,`Common.Name`=`Common Name`, `Survey.Type`=`Survey Type`)
+
+lightSmith_manual_2_merge <- lightSmith_manual %>% dplyr::select(`Project.Request`=`Project Requested`,`Scientific.Name` =`scientific_name`,`Point.of.Contact.for.Submission`=`Point of Contact for Submission`,`Email`,`Common.Name`=`Common Name`, `Survey.Type`=`Survey Type`)
+
+Marine_Inverts_CA_2_merge <- Marine_Inverts_CA %>% dplyr::select(`Project.Request`=`Project Requested`,`Scientific.Name` =`scientific_name`,`Point.of.Contact.for.Submission`=`Point of Contact for Submission`,`Email`,`Common.Name`=`Common Name`, `Survey.Type`=`Survey Type`)
+
+MPA_baseline_2_merge <- MPA_baseline %>% dplyr::select(`Project.Request`=`Project Requested`,`Scientific.Name` =`scientific_name`,`Point.of.Contact.for.Submission`=`Point of Contact for Submission`,`Email`,`Common.Name`=`Common Name`, `Survey.Type`=`Survey Type`)
+
+SCAMIT_2_merge <- SCAMIT %>% dplyr::select(`Project.Request`=`Project Requested`,`Scientific.Name` =`scientific_name`,`Point.of.Contact.for.Submission`=`Point of Contact for Submission`,`Email`,`Common.Name`=`Common Name`, `Survey.Type`=`Survey Type`)
+
+```
+
+# Merge all the data
+```{r}
+rbind(limpets_2_merge ,
+MARINe_2_merge ,
+SCB_Isopods_2_merge ,
+PISCO_2_merge ,
+CA_seaweeds_KathyAnn_2_merge,
+CA_seaweeds_UCBerkeley_2_merge,
+FishCARD_2_merge,
+CalNEMO_2_merge,
+lightSmith_manual_2_merge,
+Marine_Inverts_CA_2_merge,
+MPA_baseline_2_merge,
+SCAMIT_2_merge) -> intertidal_list_assembled_raw
+
+```
+
+#Run cleanup script
+```{r}
+species_only <- intertidal_list_assembled_raw %>% select(Scientific.Name)
+write.table(species_only, file=here("inputs", "intertidal_list_assembled_raw.txt"), sep='\t', quote=FALSE, row.names=FALSE, col.names = TRUE)
+
+system("Rscript --vanilla /Users/mcallister/software/scripts/github/OMISSION/assets/import_and_clean.R /Users/mcallister/software/scripts/github/OMISSION/inputs /Users/mcallister/software/scripts/github/OMISSION/inputs/intertidal_list_assembled_intermediate.txt Scientific.Name")
+```
+
+#Load in cleaned file
+```{r}
+cleaned_species_list <- read.delim(here("inputs", "list_cleaned.txt"), header=TRUE, stringsAsFactors=FALSE)
+```
+
+# Number of unique entries within Scientific Name
+```{r}
+cleaned_species_list$Scientific.Name %>% unique() %>%  length()
+```
+
