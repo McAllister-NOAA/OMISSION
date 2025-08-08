@@ -1,0 +1,388 @@
+---
+title: "intertidal_prop"
+author: "Sean McAllister"
+date: "8/6/2025"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(knitr)
+library(networkD3)
+library(ggplot2)
+```
+
+# Set the working directory
+```{r, setup, include=FALSE}
+knitr::opts_knit$set(root.dir = "/Users/mcallister/Desktop/03_Projects/03_Mitogenomes/gap_analysis/11_test_INTERTIDAL")
+```
+
+#Import files to merge
+```{r}
+NEP_intertidal_testing <- read_delim("inputs/NEP_list_FINAL_merge_records_05.txt", col_types = cols(.default = col_character()), na = c("","NA"))
+FISH_intertidal_testing <- read_delim("inputs/NEP_list_FINAL_merge_records_08.txt", col_types = cols(.default = col_character()), na = c("","NA"))
+
+col_df1 <- colnames(NEP_intertidal_testing)
+col_df2 <- colnames(FISH_intertidal_testing)
+list(
+  only_in_df1 = setdiff(col_df1, col_df2),
+  only_in_df2 = setdiff(col_df2, col_df1)
+)
+
+combined_intertidal_testing <- bind_rows(NEP_intertidal_testing, FISH_intertidal_testing)
+```
+
+#Filter to the intertidal databases
+```{r}
+#sort(unique(combined_intertidal_testing$Project.Request))
+
+project_interest <- c("CCLME_Fish_ZG", "MARINe", "LiMPETS – Long-term Monitoring Program and Experiential Training for Students.", "SCB Isopod 2023 List", "PISCO")
+
+filt_combined <- combined_intertidal_testing %>%
+  filter(Project.Request %in% project_interest)
+
+#write.table(filt_combined, file="filtered_merge_records.txt", sep='\t', quote=FALSE, row.names=FALSE, col.names = TRUE)
+
+```
+
+#Get stats
+```{r}
+count_total <- filt_combined$Scientific.Name %>%  length()
+
+count_uniq <- filt_combined$Scientific.Name %>% unique() %>%  length()
+
+count_unique_aphiaID <- filt_combined %>%
+  filter(!is.na(AphiaID)) %>%
+  distinct(Scientific.Name) %>%
+  nrow()
+
+count_unique_NOaphiaID <- filt_combined %>%
+  filter(is.na(AphiaID)) %>%
+  distinct(Scientific.Name) %>%
+  nrow()
+
+count_unique_aphiaID_species <- filt_combined %>%
+  filter(!is.na(AphiaID)) %>%
+  filter(taxonRank %in% c("Species", "Subspecies", "Forma", "Variety")) %>%
+  distinct(Scientific.Name) %>%
+  nrow()
+
+count_unique_aphiaID_genus <- filt_combined %>%
+  filter(!is.na(AphiaID)) %>%
+  filter(taxonRank %in% c("Genus", "Subgenus")) %>%
+  distinct(Scientific.Name) %>%
+  nrow()
+
+count_unique_aphiaID_higher <- filt_combined %>%
+  filter(!is.na(AphiaID)) %>%
+  filter(!taxonRank %in% c("Species", "Subspecies", "Forma", "Variety", "Genus", "Subgenus")) %>%
+  distinct(Scientific.Name) %>%
+  nrow()
+
+count_unique_NOaphiaID_species <- filt_combined %>%
+  filter(is.na(AphiaID)) %>%
+  filter(taxonRank %in% c("Species", "Subspecies", "Forma", "Variety")) %>%
+  distinct(Scientific.Name) %>%
+  nrow()
+
+count_unique_NOaphiaID_genus <- filt_combined %>%
+  filter(is.na(AphiaID)) %>%
+  filter(taxonRank %in% c("Genus", "Subgenus")) %>%
+  distinct(Scientific.Name) %>%
+  nrow()
+
+count_unique_NOaphiaID_higher <- filt_combined %>%
+  filter(is.na(AphiaID)) %>%
+  filter(!taxonRank %in% c("Species", "Subspecies", "Forma", "Variety", "Genus", "Subgenus")) %>%
+  distinct(Scientific.Name) %>%
+  nrow()
+
+count_unique_species_NCBI <- filt_combined %>%
+  filter(!is.na(identifier) | !is.na(accepted_NCBI)) %>%
+  filter(taxonRank %in% c("Species", "Subspecies", "Forma", "Variety")) %>%
+  distinct(Scientific.Name) %>%
+  nrow()
+
+count_unique_species_noNCBI <- filt_combined %>%
+  filter(is.na(identifier) & is.na(accepted_NCBI)) %>%
+  filter(taxonRank %in% c("Species", "Subspecies", "Forma", "Variety")) %>%
+  distinct(Scientific.Name) %>%
+  nrow()
+
+count_unique_genus_NCBI <- filt_combined %>%
+  filter(!is.na(identifier) | !is.na(accepted_NCBI)) %>%
+  filter(taxonRank %in% c("Genus", "Subgenus")) %>%
+  distinct(Scientific.Name) %>%
+  nrow()
+
+count_unique_genus_noNCBI <- filt_combined %>%
+  filter(is.na(identifier) & is.na(accepted_NCBI)) %>%
+  filter(taxonRank %in% c("Genus", "Subgenus")) %>%
+  distinct(Scientific.Name) %>%
+  nrow()
+
+count_unique_higher_NCBI <- filt_combined %>%
+  filter(!is.na(identifier) | !is.na(accepted_NCBI)) %>%
+  filter(!taxonRank %in% c("Species", "Subspecies", "Forma", "Variety", "Genus", "Subgenus")) %>%
+  distinct(Scientific.Name) %>%
+  nrow()
+
+count_unique_higher_noNCBI <- filt_combined %>%
+  filter(is.na(identifier) & is.na(accepted_NCBI)) %>%
+  filter(!taxonRank %in% c("Species", "Subspecies", "Forma", "Variety", "Genus", "Subgenus")) %>%
+  distinct(Scientific.Name) %>%
+  nrow()
+
+#ALL potential subtree hits
+# rel_cols <- c("circular_complete_unverified_subTreeHits", 
+#               "circular_complete_verified_subTreeHits",
+#               "circular_claimComplete_unverified_subTreeHits", 
+#               "circular_claimComplete_verified_subTreeHits",
+#               "circular_noClaim_unverified_subTreeHits",
+#               "circular_noClaim_verified_subTreeHits", 
+#               "linear_complete_unverified_subTreeHits",
+#               "linear_complete_verified_subTreeHits",
+#               "linear_claimComplete_unverified_subTreeHits",
+#               "linear_claimComplete_verified_subTreeHits",
+#               "linear_noClaim_unverified_subTreeHits",
+#               "linear_noClaim_verified_subTreeHits"
+#               )
+
+#ALL potential direct hits
+# rel_cols <- c("circular_complete_unverified_directHits", 
+#               "circular_complete_verified_directHits", 
+#               "circular_claimComplete_unverified_directHits", 
+#               "circular_claimComplete_verified_directHits", 
+#               "circular_noClaim_unverified_directHits",
+#               "circular_noClaim_verified_directHits", 
+#               "linear_complete_unverified_directHits", 
+#               "linear_complete_verified_directHits", 
+#               "linear_claimComplete_unverified_directHits", 
+#               "linear_claimComplete_verified_directHits", 
+#               "linear_noClaim_unverified_directHits", 
+#               "linear_noClaim_verified_directHits"
+#               )
+
+rel_cols_complete <- c("circular_complete_unverified_subTreeHits", 
+              "circular_complete_verified_subTreeHits",
+              "linear_complete_unverified_subTreeHits",
+              "linear_complete_verified_subTreeHits"
+)
+
+rel_cols_other <- c("circular_claimComplete_unverified_subTreeHits", 
+              "circular_claimComplete_verified_subTreeHits",
+              "circular_noClaim_unverified_subTreeHits",
+              "circular_noClaim_verified_subTreeHits",
+              "linear_claimComplete_unverified_subTreeHits",
+              "linear_claimComplete_verified_subTreeHits",
+              "linear_noClaim_unverified_subTreeHits",
+              "linear_noClaim_verified_subTreeHits"
+)
+
+existing_cols_complete <- rel_cols_complete[rel_cols_complete %in% colnames(filt_combined)]
+existing_cols_other <- rel_cols_other[rel_cols_other %in% colnames(filt_combined)]
+
+unique_species_NCBI_completeMitogenome <- filt_combined %>%
+  filter(!is.na(identifier) | !is.na(accepted_NCBI)) %>%
+  filter(taxonRank %in% c("Species", "Subspecies", "Forma", "Variety")) %>%
+  rowwise() %>%
+  filter(any(!is.na(across(all_of(existing_cols_complete))))) %>%
+  ungroup() %>%
+  distinct(Scientific.Name) %>%
+  pull(Scientific.Name)
+count_unique_species_NCBI_completeMitogenome <- length(unique_species_NCBI_completeMitogenome)
+
+unique_species_NCBI_otherMitogenome <- filt_combined %>%
+  filter(!is.na(identifier) | !is.na(accepted_NCBI)) %>%
+  filter(!(Scientific.Name %in% unique_species_NCBI_completeMitogenome)) %>%
+  filter(taxonRank %in% c("Species", "Subspecies", "Forma", "Variety")) %>%
+  rowwise() %>%
+  filter(any(!is.na(across(all_of(existing_cols_other))))) %>%
+  ungroup() %>%
+  distinct(Scientific.Name) %>%
+  pull(Scientific.Name)
+count_unique_species_NCBI_otherMitogenome <- length(unique_species_NCBI_otherMitogenome)
+
+unique_species_NCBI_noMitogenome  <- filt_combined %>%
+  filter(!is.na(identifier) | !is.na(accepted_NCBI)) %>%
+  filter(taxonRank %in% c("Species", "Subspecies", "Forma", "Variety")) %>%
+  filter(!(Scientific.Name %in% c(unique_species_NCBI_completeMitogenome, unique_species_NCBI_otherMitogenome))) %>%
+  distinct(Scientific.Name) %>%
+  pull(Scientific.Name)
+count_unique_species_NCBI_noMitogenome <- length(unique_species_NCBI_noMitogenome)
+
+
+#ALL potential direct hits
+# rel_cols <- c("high_potential_sra_directHits", 
+#               "other_potential_sra_directHits", "other_sra_directHits"
+#               )
+
+#ALL potential subtree hits
+# rel_cols <- c("high_potential_sra_subTreeHits", 
+#               "other_potential_sra_subTreeHits", 
+#               "other_sra_subTreeHits"
+#               )
+
+rel_cols_sra_high <- c("high_potential_sra_subTreeHits")
+rel_cols_sra_potential <- c("other_potential_sra_subTreeHits")
+
+existing_cols_sra_high <- rel_cols_sra_high[rel_cols_sra_high %in% colnames(filt_combined)]
+existing_cols_sra_potential <- rel_cols_sra_potential[rel_cols_sra_potential %in% colnames(filt_combined)]
+
+unique_species_NCBI_otherMitogenome_highSRA <- filt_combined %>%
+  filter(!is.na(identifier) | !is.na(accepted_NCBI)) %>%
+  filter(taxonRank %in% c("Species", "Subspecies", "Forma", "Variety")) %>%
+  filter(Scientific.Name %in% c(unique_species_NCBI_otherMitogenome)) %>%
+  rowwise() %>%
+  filter(any(!is.na(across(all_of(existing_cols_sra_high))))) %>%
+  ungroup() %>%
+  distinct(Scientific.Name) %>%
+  pull(Scientific.Name)
+count_unique_species_NCBI_otherMitogenome_highSRA <- length(unique_species_NCBI_otherMitogenome_highSRA)
+
+unique_species_NCBI_noMitogenome_highSRA <- filt_combined %>%
+  filter(!is.na(identifier) | !is.na(accepted_NCBI)) %>%
+  filter(taxonRank %in% c("Species", "Subspecies", "Forma", "Variety")) %>%
+  filter(Scientific.Name %in% c(unique_species_NCBI_noMitogenome)) %>%
+  rowwise() %>%
+  filter(any(!is.na(across(all_of(existing_cols_sra_high))))) %>%
+  ungroup() %>%
+  distinct(Scientific.Name) %>%
+  pull(Scientific.Name)
+count_unique_species_NCBI_noMitogenome_highSRA <- length(unique_species_NCBI_noMitogenome_highSRA)
+
+
+unique_species_NCBI_otherMitogenome_potentialSRA <- filt_combined %>%
+  filter(!is.na(identifier) | !is.na(accepted_NCBI)) %>%
+  filter(taxonRank %in% c("Species", "Subspecies", "Forma", "Variety")) %>%
+  filter(Scientific.Name %in% c(unique_species_NCBI_otherMitogenome)) %>%
+  filter(!(Scientific.Name %in% unique_species_NCBI_otherMitogenome_highSRA)) %>%
+  rowwise() %>%
+  filter(any(!is.na(across(all_of(existing_cols_sra_potential))))) %>%
+  ungroup() %>%
+  distinct(Scientific.Name) %>%
+  pull(Scientific.Name)
+count_unique_species_NCBI_otherMitogenome_potentialSRA <- length(unique_species_NCBI_otherMitogenome_potentialSRA)
+
+unique_species_NCBI_noMitogenome_potentialSRA <- filt_combined %>%
+  filter(!is.na(identifier) | !is.na(accepted_NCBI)) %>%
+  filter(taxonRank %in% c("Species", "Subspecies", "Forma", "Variety")) %>%
+  filter(Scientific.Name %in% c(unique_species_NCBI_noMitogenome)) %>%
+  filter(!(Scientific.Name %in% unique_species_NCBI_noMitogenome_highSRA)) %>%
+  rowwise() %>%
+  filter(any(!is.na(across(all_of(existing_cols_sra_potential))))) %>%
+  ungroup() %>%
+  distinct(Scientific.Name) %>%
+  pull(Scientific.Name)
+count_unique_species_NCBI_noMitogenome_potentialSRA <- length(unique_species_NCBI_noMitogenome_potentialSRA)
+
+unique_species_NCBI_otherMitogenome_noSRA <- filt_combined %>%
+  filter(!is.na(identifier) | !is.na(accepted_NCBI)) %>%
+  filter(taxonRank %in% c("Species", "Subspecies", "Forma", "Variety")) %>%
+  filter(Scientific.Name %in% c(unique_species_NCBI_otherMitogenome)) %>%
+  filter(!(Scientific.Name %in% c(unique_species_NCBI_otherMitogenome_highSRA, unique_species_NCBI_otherMitogenome_potentialSRA))) %>%
+  distinct(Scientific.Name) %>%
+  pull(Scientific.Name)
+count_unique_species_NCBI_otherMitogenome_noSRA <- length(unique_species_NCBI_otherMitogenome_noSRA)
+
+unique_species_NCBI_noMitogenome_noSRA <- filt_combined %>%
+  filter(!is.na(identifier) | !is.na(accepted_NCBI)) %>%
+  filter(taxonRank %in% c("Species", "Subspecies", "Forma", "Variety")) %>%
+  filter(Scientific.Name %in% c(unique_species_NCBI_noMitogenome)) %>%
+  filter(!(Scientific.Name %in% c(unique_species_NCBI_noMitogenome_highSRA, unique_species_NCBI_noMitogenome_potentialSRA))) %>%
+  distinct(Scientific.Name) %>%
+  pull(Scientific.Name)
+count_unique_species_NCBI_noMitogenome_noSRA <- length(unique_species_NCBI_noMitogenome_noSRA)
+
+```
+
+#Sankey Diagram
+```{r}
+nodes <- data.frame(
+  id = c("Unique", "AphiaID", "no_AphiaID", "(Sub)Species", "Genus", "Higher_Taxa",
+         "sp_NCBI_TaxID", "sp_no_NCBI_TaxID", "gen_NCBI_TaxID", "gen_no_NCBI_TaxID",
+         "Circular_Mitogenome", "Other_Mitogenome", "no_Mitogenome",
+         "High_SRA", "Potential_SRA", "no_good_SRA"),
+  
+  label = c("Unique", "AphiaID", "no AphiaID", "(Sub)Species", "Genus", "Higher Taxa",
+            "NCBI TaxID", "no NCBI TaxID", "NCBI TaxID", "no NCBI TaxID",
+            "Circular/Linear Complete Mitogenome", "Other Mitogenome", "no Mitogenome",
+            "High Potential Success SRA", "Potential Success SRA", "no good SRA"),
+  
+  group = c("group_A", "group_B", "group_C", "group_B", "group_D", "group_C",
+            "group_B", "group_C", "group_B", "group_C",
+            "group_E", "group_E", "group_C", "group_E", "group_E", "group_C"),
+  
+  stringsAsFactors = FALSE
+)
+
+raw_links <- data.frame(
+  source = c("Unique", "Unique", "AphiaID", "no_AphiaID", "AphiaID", "no_AphiaID", "AphiaID", "no_AphiaID",
+             "(Sub)Species", "(Sub)Species", "Genus", "Genus", "Higher_Taxa", "Higher_Taxa",
+             "sp_NCBI_TaxID", "sp_NCBI_TaxID", "sp_NCBI_TaxID",
+             "no_Mitogenome", "no_Mitogenome", "no_Mitogenome",
+             "Other_Mitogenome", "Other_Mitogenome"),
+  target = c("AphiaID", "no_AphiaID", "(Sub)Species", "(Sub)Species", "Genus", "Genus", "Higher_Taxa", "Higher_Taxa",
+             "sp_NCBI_TaxID", "sp_no_NCBI_TaxID", "gen_NCBI_TaxID", "gen_no_NCBI_TaxID", "gen_NCBI_TaxID", "gen_no_NCBI_TaxID",
+             "Circular_Mitogenome", "Other_Mitogenome", "no_Mitogenome",
+             "High_SRA", "Potential_SRA", "no_good_SRA",
+             "High_SRA", "Potential_SRA"),
+  value = c(
+    count_unique_aphiaID, count_unique_NOaphiaID,
+    count_unique_aphiaID_species, count_unique_NOaphiaID_species,
+    count_unique_aphiaID_genus, count_unique_NOaphiaID_genus,
+    count_unique_aphiaID_higher, count_unique_NOaphiaID_higher,
+    count_unique_species_NCBI, count_unique_species_noNCBI,
+    count_unique_genus_NCBI, count_unique_genus_noNCBI,
+    count_unique_higher_NCBI, count_unique_higher_noNCBI,
+    count_unique_species_NCBI_completeMitogenome,
+    count_unique_species_NCBI_otherMitogenome,
+    count_unique_species_NCBI_noMitogenome,
+    count_unique_species_NCBI_noMitogenome_highSRA,
+    count_unique_species_NCBI_noMitogenome_potentialSRA,
+    count_unique_species_NCBI_noMitogenome_noSRA,
+    count_unique_species_NCBI_otherMitogenome_highSRA,
+    count_unique_species_NCBI_otherMitogenome_potentialSRA
+  ),
+  group = c(
+    "link_A", "link_B", "link_A", "link_A", "link_B", "link_B", "link_B", "link_B",
+    "link_A", "link_B", "link_B", "link_B", "link_B", "link_B",
+    "link_A", "link_A", "link_C",
+    "link_A", "link_A", "link_C",
+    "link_A", "link_A"
+  ),
+  stringsAsFactors = FALSE
+)
+links_filtered <- raw_links[raw_links$value > 0, ]
+
+#Convert names to index numbers
+links_filtered$source <- match(links_filtered$source, nodes$id) - 1
+links_filtered$target <- match(links_filtered$target, nodes$id) - 1
+
+my_color <- 'd3.scaleOrdinal()
+  .domain(["group_A", "group_B", "group_C", "group_D", "group_E", 
+           "link_A", "link_B", "link_C"])
+  .range(["white", "#0009AB", "lightgrey", "#5a5a5a", "#DE2110",
+          "#F4A9BE", "lightgrey", "#9B0058"])'
+
+# Create the Sankey diagram
+sankeyNetwork(
+  Links = links_filtered,
+  Nodes = nodes,
+  Source = "source",
+  Target = "target",
+  Value = "value",
+  NodeID = "label",
+  NodeGroup = "group",
+  LinkGroup = "group",
+  colourScale = my_color,
+  fontSize = 16,
+  nodeWidth = 25,
+  sinksRight = FALSE
+)
+
+```
+
+
+

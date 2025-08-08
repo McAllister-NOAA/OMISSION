@@ -1,0 +1,119 @@
+---
+title: "Country Metadata"
+author: "Sean McAllister"
+date: "8/6/2025"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(readxl)
+```
+
+# Set the working directory
+```{r, setup, include=FALSE}
+knitr::opts_knit$set(root.dir = "/Users/mcallister/Desktop/03_Projects/03_Mitogenomes/gap_analysis/11_test_INTERTIDAL")
+```
+
+# Pull locality info (in terminal from mitochondrial results
+```{bash}
+awk -F'\t' '
+{
+    subtype = $11;
+    subname = $12;
+    country = "NA";
+
+    n = split(subtype, subtype_arr, "|");
+    m = split(subname, subname_arr, "|");
+
+    for (i = 1; i <= n; i++) {
+        if (subtype_arr[i] == "country") {
+            if (i <= m) {
+                country = subname_arr[i];
+            }
+            break;
+        }
+    }
+
+    print $0 "\t" country;
+}' all_mito.txt > all_mito_with_country.txt
+
+```
+
+#Prioritization
+```{r}
+PRIORITY <- read_xlsx(here("export","scientificNameTable_FINAL_GeneraSpeciesDatabase_RegionPriority.xlsx"), na = "NA", col_types = "text")
+
+assign_priority <- function(df) {
+  df$priority <- NA_integer_
+  
+  other_mito_cols <- c(
+    "linear_noClaim_verified_subTreeHits", "linear_noClaim_unverified_subTreeHits",
+    "linear_complete_verified_subTreeHits", "circular_noClaim_verified_subTreeHits",
+    "circular_claimComplete_verified_subTreeHits", "linear_claimComplete_verified_subTreeHits",
+    "linear_complete_unverified_subTreeHits", "circular_noClaim_unverified_subTreeHits"
+  )
+  
+  good_mito_cols <- c("circular_complete_verified_subTreeHits", "circular_complete_unverified_subTreeHits")
+  
+  all_mito_cols <- c("linear_noClaim_verified_subTreeHits", "linear_noClaim_unverified_subTreeHits",
+    "linear_complete_verified_subTreeHits", "circular_noClaim_verified_subTreeHits",
+    "circular_claimComplete_verified_subTreeHits", "linear_claimComplete_verified_subTreeHits",
+    "linear_complete_unverified_subTreeHits", "circular_noClaim_unverified_subTreeHits", "circular_complete_verified_subTreeHits", "circular_complete_unverified_subTreeHits"
+    )
+  
+  # Priority 1
+  df$priority[is.na(df$identifier) & is.na(df$accepted_NCBI)] <- 1
+  
+  # Priority 2
+  df$priority[
+    is.na(df$priority) &
+    is.na(df$high_potential_sra_subTreeHits) &
+    rowSums(!is.na(df[, all_mito_cols])) == 0
+  ] <- 2
+  
+  # Priority 3
+  df$priority[
+    is.na(df$priority) &
+    rowSums(!is.na(df[, all_mito_cols])) == 0 &
+    !is.na(df$high_potential_sra_subTreeHits)
+  ] <- 3
+  
+  # Priority 4
+  df$priority[
+    is.na(df$priority) &
+    rowSums(!is.na(df[, other_mito_cols])) > 0 &
+    rowSums(!is.na(df[, good_mito_cols])) == 0
+  ] <- 4
+  
+  # Priority 5
+  df$priority[
+    is.na(df$priority)
+  ] <- 5
+  
+  # Priority 6
+  df$priority[
+    rowSums(!is.na(df[, good_mito_cols])) > 0 &
+    !is.na(df$circular_complete_verified_subTreeHits_midPriority_RegionRep) &
+    is.na(df$circular_complete_verified_subTreeHits_lowestPriority_Precision)
+  ] <- 6
+
+  # Priority 7
+  df$priority[
+    !is.na(df$circular_complete_verified_subTreeHits_lowestPriority_Precision)
+  ] <- 7
+  
+  return(df)
+}
+
+
+PRIORITY <- assign_priority(PRIORITY)
+
+PRIORITY$priority_label <- factor(PRIORITY$priority, levels = 1:7, labels = c(
+  "never_sequenced", "sequenced_no_mito_no_SRA", "sequenced_SRA_only", 
+  "sequenced_low_conf_mito", "sequenced_good_mito_global", 
+  "sequenced_good_mito_regional", "sequenced_good_mito_precise"
+))
+
+write.table(PRIORITY, file=here("export/scientificNameTable_FINAL_GeneraSpeciesDatabase_PRIORITYadded.txt"), sep='\t', quote=FALSE, row.names=FALSE, col.names = TRUE)
+```

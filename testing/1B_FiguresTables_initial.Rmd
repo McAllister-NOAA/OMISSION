@@ -1,0 +1,280 @@
+---
+title: "Figures/Tables"
+author: "Sean McAllister"
+date: "2024-12-05"
+output: html_document
+---
+
+# Load in Libraries
+```{r}
+library(tidyverse)
+library(here)
+library(readxl)
+library(stringr)
+library(worrms)
+library(readr)
+library(networkD3)
+library(ggplot2)
+library(nationalparkcolors)
+```
+
+# Load in Data
+```{r}
+NEP_list_FINAL_merge_records <- read_delim(here("export/NEP_list_FINAL_merge_records.txt"), col_types = cols(.default = col_character()), na = c("","NA"))
+
+FINAL_SPECIES_DB <- read_delim(here("export/scientificNameTable_FINAL_CompleteDatabase.txt"), col_types = cols(.default = col_character()), na = c("","NA"))
+
+convert_columns_to_numeric <- function(df, numeric_columns) {
+  df %>%
+    mutate(across(all_of(numeric_columns), as.numeric))
+}
+
+numeric_columns <- c("AphiaID", "Accepted_AphiaID", "parent_AphiaID")
+
+NEP_list_FINAL_merge_records <- convert_columns_to_numeric(NEP_list_FINAL_merge_records, numeric_columns)
+FINAL_SPECIES_DB <- convert_columns_to_numeric(FINAL_SPECIES_DB, numeric_columns)
+
+NEP_list_FINAL_merge_records$Scientific.Name %>% unique() %>%  length()
+FINAL_SPECIES_DB$Scientific.Name %>% unique() %>%  length()
+```
+
+# Collapse on phylum
+```{r}
+
+mitogenome_results_cols_direct <- c("circular_complete_verified_directHits", "circular_complete_unverified_directHits", "linear_complete_verified_directHits", "linear_complete_unverified_directHits", "circular_claimComplete_verified_directHits", "circular_noClaim_verified_directHits", "circular_noClaim_unverified_directHits", "linear_claimComplete_verified_directHits", "linear_noClaim_verified_directHits", "linear_noClaim_unverified_directHits")
+
+mitogenome_results_cols_subtree <- c("circular_complete_verified_subTreeHits", "circular_complete_unverified_subTreeHits", "linear_complete_verified_subTreeHits", "linear_complete_unverified_subTreeHits", "circular_claimComplete_verified_subTreeHits", "circular_noClaim_verified_subTreeHits", "circular_noClaim_unverified_subTreeHits", "linear_claimComplete_verified_subTreeHits", "linear_noClaim_verified_subTreeHits", "linear_noClaim_unverified_subTreeHits")
+
+sra_results_cols_direct <- c("high_potential_sra_directHits", "other_potential_sra_directHits")
+sra_results_cols_subtree <- c("high_potential_sra_subTreeHits", "other_potential_sra_subTreeHits")
+
+collapse_by_phylum_strings <- function(df) {
+  df %>%
+    group_by(phylum) %>%
+    summarise(
+      across(everything(), ~ sum(!is.na(.) & . != "", na.rm = TRUE), .names = "count_non_na_{col}"),
+      .groups = "drop"
+    )
+}
+
+#mitogenome_results_cols_direct
+collapsedPhylum_df <- FINAL_SPECIES_DB %>%
+  select(phylum, all_of(mitogenome_results_cols_direct)) %>%
+  collapse_by_phylum_strings()
+write.table(collapsedPhylum_df, 
+            file = here("export/collapsedUniquePhyla_mitogenomeDirectResults.txt"), 
+            sep = '\t', quote = FALSE, row.names = FALSE, col.names = TRUE)
+
+#mitogenome_results_cols_subtree
+collapsedPhylum_df <- FINAL_SPECIES_DB %>%
+  select(phylum, all_of(mitogenome_results_cols_subtree)) %>%
+  collapse_by_phylum_strings()
+write.table(collapsedPhylum_df, 
+            file = here("export/collapsedUniquePhyla_mitogenomeSubtreeResults.txt"), 
+            sep = '\t', quote = FALSE, row.names = FALSE, col.names = TRUE)
+
+#sra_results_cols_direct
+collapsedPhylum_df <- FINAL_SPECIES_DB %>%
+  select(phylum, all_of(sra_results_cols_direct)) %>%
+  collapse_by_phylum_strings()
+write.table(collapsedPhylum_df, 
+            file = here("export/collapsedUniquePhyla_sraDirectResults.txt"), 
+            sep = '\t', quote = FALSE, row.names = FALSE, col.names = TRUE)
+
+#sra_results_cols_subtree
+collapsedPhylum_df <- FINAL_SPECIES_DB %>%
+  select(phylum, all_of(sra_results_cols_subtree)) %>%
+  collapse_by_phylum_strings()
+write.table(collapsedPhylum_df, 
+            file = here("export/collapsedUniquePhyla_sraSubtreeResults.txt"), 
+            sep = '\t', quote = FALSE, row.names = FALSE, col.names = TRUE)
+
+```
+
+#Create sankey figure for search fate
+```{r}
+
+# of 19,251 unique requests
+# 12,323 were unique scientific names
+
+#TODO add rCRUX results
+
+temp <- FINAL_SPECIES_DB %>% filter(taxonRank %in% c("Species", "Subspecies", "Forma", "Variety"))
+temp2 <- temp %>% filter(!is.na(identifier) | !is.na(accepted_NCBI))
+temp3 <- temp2 %>% filter(is.na(circular_complete_verified_subTreeHits) & is.na(circular_complete_unverified_subTreeHits) & is.na(linear_complete_verified_subTreeHits) & is.na(linear_complete_unverified_subTreeHits))
+temp4 <- temp3 %>% filter(!is.na(circular_claimComplete_verified_subTreeHits) | !is.na(circular_noClaim_verified_subTreeHits) | !is.na(circular_noClaim_unverified_subTreeHits) | !is.na(linear_claimComplete_verified_subTreeHits) | !is.na(linear_noClaim_verified_subTreeHits) | !is.na(linear_noClaim_unverified_subTreeHits))
+temp5 <- temp4 %>% filter(!is.na(other_potential_sra_subTreeHits))
+
+nodes <- data.frame(
+  name = c("Unique", "AphiaID", "no AphiaID", "Species/Subspecies", "Genus", "Higher Taxonomy", "NCBI TaxID", "no NCBI TaxID", "NCBI TaxID", "no NCBI TaxID", "Circular/Linear Complete Mitogenome", "Other Mitogenome", "no Mitogenome", "High Potential Success SRA", "Potential Success SRA", "no SRA"),
+  group = c("group_A", "group_B", "group_C", "group_D", "group_E", "group_F", "group_G", "group_C", "group_G", "group_C", "group_H", "group_I", "group_C", "group_J", "group_K", "group_C", )
+  )
+
+links <- data.frame(
+  source = c(0, 0, 1, 2, 1, 2, 1, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 12, 12, 12, 11, 11),
+  target = c(1, 2, 3, 3, 4, 4, 5, 5, 6, 7, 8, 9, 8, 9, 10, 11, 12, 13, 14, 15, 13, 14),
+  value = c(12104, 219, 9966, 41, 1610, 11, 528, 1, 5838, 4169, 1342, 279, 488, 41, 989, 337, 4512, 282, 86, 4144, 158, 58),
+  group = as.factor(c("link_A", "link_B", "link_A", "link_A", "link_B", "link_B", "link_B", "link_B", "link_A", "link_B", "link_B", "link_B", "link_B", "link_B", "link_A", "link_A", "link_B", "link_A", "link_A", "link_B", "link_A", "link_A"))
+)
+
+pal <- park_palette("GeneralGrant")
+
+my_color <- 'd3.scaleOrdinal() .domain(["group_A", "group_B","group_C", "group_D", "group_E", "group_F", "group_G", "group_H", "group_I", "group_J", "group_K", "link_A", "link_B"]) .range(["white", "#C9DACA", "lightgrey", "#557780", "#FBE697", "#F3AE6D", "#1F304A", "#802729", "#b53638", "#802729", "#b53638", "#f08484", "lightgrey"])'
+ 
+# Create the Sankey diagram
+sankeyNetwork(
+  Links = links, 
+  Nodes = nodes,
+  Source = "source", 
+  Target = "target", 
+  Value = "value", 
+  NodeID = "name",
+  LinkGroup = "group",
+  fontSize = 12, 
+  nodeWidth = 30,
+  sinksRight = FALSE,
+  colourScale=my_color
+)
+```
+
+#Compare WORMS and NCBI taxonomies
+```{r}
+FINAL_SPECIES_DB <- FINAL_SPECIES_DB %>%
+  mutate(NCBI_identifier_taxonomyString = paste(
+      NCBI_identifier_phylum, NCBI_identifier_class, NCBI_identifier_order, NCBI_identifier_family, NCBI_identifier_genus, NCBI_identifier_species, sep = ";"))
+
+FINAL_SPECIES_DB <- FINAL_SPECIES_DB %>%
+  mutate(NCBI_accepted_taxonomyString = paste(
+      NCBI_accepted_phylum, NCBI_accepted_class, NCBI_accepted_order, NCBI_accepted_family, NCBI_accepted_genus, NCBI_accepted_species, sep = ";"))
+
+FINAL_SPECIES_DB <- FINAL_SPECIES_DB %>%
+  mutate(WORMS_taxonomyString = paste(
+      phylum, class, order, family, genus, ifelse(!is.na(genus) & !is.na(specificEpithet), 
+             paste(genus, specificEpithet, sep = " "), 
+             NA), sep = ";"))
+
+FINAL_SPECIES_DB <- FINAL_SPECIES_DB %>%
+  mutate(
+    is_identifier_all_NA = NCBI_identifier_taxonomyString == "NA;NA;NA;NA;NA;NA",
+    is_accepted_all_NA = NCBI_accepted_taxonomyString == "NA;NA;NA;NA;NA;NA",
+    is_worms_all_NA = WORMS_taxonomyString == "NA;NA;NA;NA;NA;NA"
+  )
+
+valid_comparisons <- FINAL_SPECIES_DB %>%
+  filter(
+    !is_identifier_all_NA & !is_accepted_all_NA, # Valid for identifier vs accepted
+    !is_identifier_all_NA & !is_worms_all_NA,   # Valid for identifier vs worms
+    !is_accepted_all_NA & !is_worms_all_NA      # Valid for accepted vs worms
+  )
+
+match_percentages <- valid_comparisons %>%
+  summarise(
+    identifier_accepted_percent = mean(NCBI_identifier_taxonomyString == NCBI_accepted_taxonomyString, na.rm = TRUE) * 100,
+    identifier_worms_percent = mean(NCBI_identifier_taxonomyString == WORMS_taxonomyString, na.rm = TRUE) * 100,
+    accepted_worms_percent = mean(NCBI_accepted_taxonomyString == WORMS_taxonomyString, na.rm = TRUE) * 100
+  )
+
+print(match_percentages)
+#identifier_accepted_percent = 99.2%
+#identifier_worms_percent = 66.4%
+#accepted_worms_percent = 65.8%
+```
+
+#Deal with genus comparisons
+```{r}
+
+# genera_queries <- FINAL_SPECIES_DB %>%
+#   filter(taxonRank %in% c("Genus", "Subgenus"))
+# 
+# genera_queries_WORMSmanual <- FINAL_SPECIES_DB %>%
+#   filter(taxonRank %in% c("Genus", "Subgenus")) %>%
+#   filter(is.na(scientificNameID) & !is.na(AphiaID))
+# 
+# genera_queries_NCBIrescue <- FINAL_SPECIES_DB %>%
+#   filter(taxonRank %in% c("Genus", "Subgenus")) %>%
+#   filter(is.na(AphiaID))
+
+genera_queries_wAphiaID <- FINAL_SPECIES_DB %>%
+  filter(taxonRank %in% c("Genus", "Subgenus")) %>%
+  filter(!is.na(AphiaID))
+
+WORMS_lookup <- wm_children_(id = genera_queries_wAphiaID$AphiaID)
+WORMS_lookup <- convert_columns_to_numeric(WORMS_lookup, "id")
+unique_taxa <- unique(WORMS_lookup$rank)
+print(unique_taxa)
+
+WORMS_lookup_ltSpecies <- WORMS_lookup %>% filter(rank %in% c("Species"))
+
+WORMS_subspecies_lookup <- wm_children_(id = WORMS_lookup_ltSpecies$AphiaID)
+WORMS_subspecies_lookup <- convert_columns_to_numeric(WORMS_subspecies_lookup, "id")
+unique_taxa_sub <- unique(WORMS_subspecies_lookup$rank)
+print(unique_taxa_sub)
+
+WORMS_subspecies_new <- WORMS_subspecies_lookup %>%
+  left_join(
+    WORMS_lookup %>% select(AphiaID, id),
+    by = c("id" = "AphiaID")
+  ) %>%
+  rename(original_id = id.y)
+  #select(-id.x)
+
+duplicated_rows <- WORMS_subspecies_new %>%
+  group_by(across(-original_id)) %>%  # Group by all columns except original_id
+  filter(n() > 1) %>%                 # Keep groups with more than one row
+  ungroup()
+
+WORMS_totalLU <- bind_rows(WORMS_lookup, WORMS_subspecies_lookup)
+WORMS_totalLU_accepted <- WORMS_totalLU %>% filter(status %in% c("accepted"))
+
+
+#Will need to deal with accepted vs. unaccepted etc. And walking through both of these lookups to compile the results
+
+```
+
+#Deal with genus comparisons -- extended
+
+
+
+```{r}
+test <- FINAL_SPECIES_DB %>%
+  filter(AphiaID == 225897)
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+LOGAN search for mitochondrial contigs
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
