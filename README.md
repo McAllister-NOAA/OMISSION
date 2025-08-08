@@ -3,6 +3,8 @@ Organismal Mapping for Identification of Source Sequence Information Omissions i
 
 OMISSION will conduct quality control and assurance on taxonomic names from the supplied species list to permit and perform cross reference identifications between the World Register of Marine Species (WoRMS), National Center for Biotechnology Information (NCBI), and Barcode of Life Data (BOLD) Systems nomenclatures. Following this standardization, the tool will pull relevant existing metadata (including geographic information) for mitochondrial (GenBank) and whole genome sequencing read (SRA) records from NCBI, barcoding loci from BOLD (majority COI), and cross-reference updated rCRUX-generated reference databases for a suite of commonly used loci (e.g. COI, 12S, 16S, 28S, 18S, cytB). 
 
+<img width="7615" height="3741" alt="OMISSION_workflow" src="https://github.com/user-attachments/assets/3531169c-4b76-4336-ab21-4659ad786032" />
+
 #### Legal Disclaimer
 *This repository is a software product and is not official communication
 of the National Oceanic and Atmospheric Administration (NOAA), or the
