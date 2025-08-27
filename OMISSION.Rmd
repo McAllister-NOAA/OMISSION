@@ -11,21 +11,30 @@ library(worrms)
 library(taxonomizr)
 library(readxl)
 library(knitr)
+library(bold)
 ```
 
 # User VARIABLES
 ```{r}
+#Export/Import info
 path_to_omission <- "/Users/mcallister/software/scripts/github/OMISSION" #path to the OMISSION directory (not the Rmd)
-exportdir <- "/Users/mcallister/Desktop/03_Projects/03_Mitogenomes/gap_analysis/10_NEP_new_updated/"
-inputfile <- "/Users/mcallister/Desktop/03_Projects/03_Mitogenomes/gap_analysis/10_NEP_new_updated/list_raw.txt"
-headerName <- "Scientific Name" #This is the name of the header column in your tab-delimited text file where the query organism names are stored.
+exportdir <- "/Users/mcallister/Desktop/03_Projects/03_Mitogenomes/gap_analysis/10_testing/"
+inputfile <- "/Users/mcallister/Desktop/03_Projects/03_Mitogenomes/gap_analysis/10_testing/list_input.csv"
+headerName <- "scientific_name" #This is the name of the header column in your tab-delimited text file where the query organism names are stored.
 
+#WORMS db download
 WORMS_db_taxontxt_location <- "/Users/mcallister/Desktop/03_Projects/03_Mitogenomes/gap_analysis/05_NEP_FINAL_Update/WoRMS_download_2024-08-01/taxon.txt"
 WORMS_db_identifiertxt_location <- "/Users/mcallister/Desktop/03_Projects/03_Mitogenomes/gap_analysis/05_NEP_FINAL_Update/WoRMS_download_2024-08-01/identifier.txt" 
 
-#For https://github.com/mooreryan/taxi
+#For https://github.com/mooreryan/taxi use (subtree ids)
 subtree_path <- "/usr/local/bin/taxi"
 nodes_dmp_path <- "/Users/mcallister/software/blastdb/20241127_taxdump/nodes.dmp"
+
+#For taxonomizr (this is the name of the output file to be created [if never run] or used)
+taxa_outfile_ncbi <- "/Users/mcallister/software/blastdb/taxonomizr/20241206_ncbiTax/accessionTaxa.sql"
+
+#BOLD Database Download
+BOLD_local <- "/Users/mcallister/Desktop/03_Projects/03_Mitogenomes/gap_analysis/BOLD_dl/BOLD_Public.15-Aug-2025/BOLD_Public.15-Aug-2025.tsv"
 
 ```
 
@@ -45,16 +54,22 @@ system("mkdir -p NCBI_search/names")
 system("mkdir -p NCBI_search/taxIDs")
 system("mkdir -p export/separateTaxonRanks")
 
-scientific_name_table <- read.delim("list_cleaned.txt", header=TRUE, stringsAsFactors=FALSE, na = c("","NA"))
+input_list_clean <- read.delim("list_cleaned.txt", header=TRUE, stringsAsFactors=FALSE, na = c("","NA"))
+
+scientific_name_table <- input_list_clean %>%
+  dplyr::select(Scientific.Name, row_id) %>%
+  group_by(Scientific.Name) %>%
+  summarise(row_ids = str_c(row_id, collapse = ";")) %>%
+  ungroup()
 ```
 
 # Create space for positive controls
 ```{r}
 positive_control <- tibble(
-  Scientific.Name = c("MICROPLANA SCHARFFI", "AMAGA EXPATRIA", "PEROMYSCUS MANICULATUS", "RHYNCHODEMUS SYLVATICUS", "BIPALIUM KEWENSE"),
-  AphiaID = c("416391", "484400", "1597420", "483252", "416385"),
-  NCBI_taxID = c("NCBI:txid391273", "NCBI:txid2744267", "NCBI:txid10042", "NCBI:txid1520503", "NCBI:txid66750"),
-  Source = c("NA", "NA", "NA", "NA", "NA")  # Add more fields if needed
+  Scientific.Name = c("MICROPLANA SCHARFFI", "PEROMYSCUS MANICULATUS", "RHYNCHODEMUS SYLVATICUS", "BIPALIUM KEWENSE"),
+  AphiaID = c("416391", "1597420", "483252", "416385"),
+  NCBI_taxID = c("NCBI:txid391273", "NCBI:txid10042", "NCBI:txid1520503", "NCBI:txid66750"),
+  Source = c("NA", "NA", "NA", "NA")  # Add more fields if needed
 )
 
 #Check that the positive controls aren't in query list. If they are, remove. Report if <2.
@@ -148,6 +163,7 @@ write.table(scientific_name_table_NO_APHIAID, file='MANUALCHECK2_NOAPHIAID.txt',
 ```
 
 # Run MANUAL check2. Search names manually to check for mispellings. Add "AphiaID" column and supply manually. Any that you do not wish to fix can be left blank.
+# DO NOT MODIFY SCIENTIFIC NAMES
 # Import external WORMS search/manual no_aphiaID correction and merge
 ```{r}
 NEWaddAphiaID <- read_delim("MANUALCHECK2_NOAPHIAID.txt", na = c("","NA"))
@@ -427,7 +443,7 @@ merge_scientificName_WORMSdb_addmissingRecords <- full_join(
   
   # Select only necessary columns, removing redundant "_orig" and "_new" columns
   dplyr::select(
-    Scientific.Name, AphiaID, taxonID, scientificNameID, acceptedNameUsageID, parentNameUsageID,
+    Scientific.Name, row_ids, AphiaID, taxonID, scientificNameID, acceptedNameUsageID, parentNameUsageID,
     scientificName, acceptedNameUsage, parentNameUsage, namePublishedIn, namePublishedInYear,
     kingdom, phylum, class, order, family, genus, subgenus, specificEpithet, infraspecificEpithet,
     taxonRank, scientificNameAuthorship, taxonomicStatus, modified, bibliographicCitation, references,
@@ -640,6 +656,9 @@ for (col in intersect(names(FULL_RECORD_DB), names(Genus_wNCBIid_multipleIdentif
 UPDATED_FULL_RECORD_DB <- rows_update(FULL_RECORD_DB, Species_wNCBIid_multipleIdentifiers_clean, by = "Scientific.Name")
 UPDATED_FULL_RECORD_DB <- rows_update(UPDATED_FULL_RECORD_DB, Subspecies_wNCBIid_multipleIdentifiers_clean, by = "Scientific.Name")
 UPDATED_FULL_RECORD_DB <- rows_update(UPDATED_FULL_RECORD_DB, Genus_wNCBIid_multipleIdentifiers_clean, by = "Scientific.Name")
+
+#IF NO CORRECTIONS:
+#UPDATED_FULL_RECORD_DB <- FULL_RECORD_DB
 ```
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -704,14 +723,6 @@ invisible(lapply(chunk_files, validate_chunk, positive_control = positive_contro
 system("cat NCBI_search/names/NCBI_taxonomy_01_noApiaID_names_search_chunk* > NCBI_search/names/NCBI_taxonomy_01_noApiaID_names_search_combined.txt")
 system("cat NCBI_search/names/NCBI_taxonomy_02_species_noNCBI_names_search_chunk* > NCBI_search/names/NCBI_taxonomy_02_species_noNCBI_names_search_combined.txt")
 system("cat NCBI_search/names/NCBI_taxonomy_04_subspecies_noNCBI_names_search_chunk* > NCBI_search/names/NCBI_taxonomy_04_subspecies_noNCBI_names_search_combined.txt")
-
-files_to_check <- c("NCBI_search/names/NCBI_taxonomy_01_noApiaID_names_search_combined.txt", "NCBI_search/names/NCBI_taxonomy_02_species_noNCBI_names_search_combined.txt", "NCBI_search/names/NCBI_taxonomy_04_subspecies_noNCBI_names_search_combined.txt")
-
-for (f in files_to_check) {
-  if (!file.exists(f)) {
-    stop(paste("ERROR: Missing file:", f))
-  }
-}
 
 ```
 
@@ -1052,7 +1063,6 @@ UPDATED_FULL_RECORD_DB_backup <- UPDATED_FULL_RECORD_DB
 
 #UPDATED_FULL_RECORD_DB <- UPDATED_FULL_RECORD_DB_backup
 ```
-#PROGRESS STOP
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # 
@@ -1073,7 +1083,7 @@ UPDATED_FULL_RECORD_DB_backup <- UPDATED_FULL_RECORD_DB
 #for chunk_file in 0[356]_*; do taxa=$(cat "$chunk_file"); esearch -db sra -query "$taxa" | efetch -format runinfo > "NCBI_search/taxIDs/NCBI_output_sra_${chunk_file}.txt"; sleep 10; done
 ```
 
-#Check for positive control results in each chunk
+#Check for positive control results in each chunk: MITO
 ```{r}
 chunk_files <- list.files("NCBI_search/taxIDs", pattern = "^NCBI_output_mito_0[356]_.*chunk.*\\.txt$", full.names = TRUE)
 
@@ -1107,55 +1117,60 @@ invisible(lapply(chunk_files, validate_chunk_mito, positive_control = positive_c
 
 ```
 
-TODO adjust for new output file names
-#Concatenate results chunks and check success
+#Check for positive control results in each chunk: SRA
 ```{r}
-system("cat NCBI_search/taxIDs/NCBI_output_03_species_singleNCBI_taxID_search_chunk_* > NCBI_search/taxIDs/NCBI_output_03_species_singleNCBI_taxID_search_nucl_combined.txt")
-system("cat NCBI_search/taxIDs/NCBI_output_05_subspecies_singleNCBI_taxID_search_chunk_* > NCBI_search/taxIDs/NCBI_output_05_subspecies_singleNCBI_taxID_search_nucl_combined.txt")
-system("cat NCBI_search/taxIDs/NCBI_output_06_genus_singleNCBI_taxID_search_chunk_* > NCBI_search/taxIDs/NCBI_output_06_genus_singleNCBI_taxID_search_nucl_combined.txt")
-system("cat NCBI_search/taxIDs/NCBI_output_sra_03_species_singleNCBI_taxID_search_chunk_* > NCBI_search/taxIDs/NCBI_output_03_species_singleNCBI_taxID_search_sra_combined.txt")
-system("cat NCBI_search/taxIDs/NCBI_output_sra_05_subspecies_singleNCBI_taxID_search_chunk_* > NCBI_search/taxIDs/NCBI_output_05_subspecies_singleNCBI_taxID_search_sra_combined.txt")
-system("cat NCBI_search/taxIDs/NCBI_output_sra_06_genus_singleNCBI_taxID_search_chunk_* > NCBI_search/taxIDs/NCBI_output_06_genus_singleNCBI_taxID_search_sra_combined.txt")
+chunk_files <- list.files("NCBI_search/taxIDs", pattern = "^NCBI_output_sra_0[356]_.*chunk.*\\.txt$", full.names = TRUE)
 
-files_to_check <- c("NCBI_search/taxIDs/NCBI_output_03_species_singleNCBI_taxID_search_nucl_combined.txt", "NCBI_search/taxIDs/NCBI_output_05_subspecies_singleNCBI_taxID_search_nucl_combined.txt", "NCBI_search/taxIDs/NCBI_output_06_genus_singleNCBI_taxID_search_nucl_combined.txt", "NCBI_search/taxIDs/NCBI_output_03_species_singleNCBI_taxID_search_sra_combined.txt", "NCBI_search/taxIDs/NCBI_output_05_subspecies_singleNCBI_taxID_search_sra_combined.txt", "NCBI_search/taxIDs/NCBI_output_06_genus_singleNCBI_taxID_search_sra_combined.txt")
+validate_chunk_sra <- function(chunk_file, positive_control) {
+  chunk_df <- read_csv(chunk_file, col_types = cols(.default = col_character()), na = c("","NA"), col_names = TRUE)
+  
+  specific_NCBI_cols <- c("TaxID")
+  chunk_df <- chunk_df %>%
+  mutate(across(all_of(specific_NCBI_cols), ~ ifelse(!is.na(.), paste0("NCBI:txid", .), .)))
 
-for (f in files_to_check) {
-  if (!file.exists(f)) {
-    stop(paste("ERROR: Missing file:", f))
+  match_df <- chunk_df %>%
+    filter(TaxID %in% positive_control$NCBI_taxID)
+
+  missing_controls <- setdiff(positive_control$NCBI_taxID, match_df$TaxID)
+  
+  if (length(missing_controls) == 0) {
+    cat("NCBI search function successful for", chunk_file, "\n")
+  }
+  if (length(missing_controls) > 0) {
+    cat("ERROR: NCBI search function failed, missing controls in", chunk_file, ":\n")
+    print(missing_controls)
+    cat("\n")
   }
 }
 
+invisible(lapply(chunk_files, validate_chunk_sra, positive_control = positive_control))
+
 ```
 
+#Concatenate results chunks
+```{r}
+system("cat NCBI_search/taxIDs/NCBI_output_mito_03_species_singleNCBI_taxID_search_chunk_* > NCBI_search/taxIDs/NCBI_output_mito_03_species_singleNCBI_taxID_search_combined.txt")
+system("cat NCBI_search/taxIDs/NCBI_output_mito_05_subspecies_singleNCBI_taxID_search_chunk_* > NCBI_search/taxIDs/NCBI_output_mito_05_subspecies_singleNCBI_taxID_search_combined.txt")
+system("cat NCBI_search/taxIDs/NCBI_output_mito_06_genus_singleNCBI_taxID_search_chunk_* > NCBI_search/taxIDs/NCBI_output_mito_06_genus_singleNCBI_taxID_search_combined.txt")
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+system("cat NCBI_search/taxIDs/NCBI_output_sra_03_species_singleNCBI_taxID_search_chunk_* > NCBI_search/taxIDs/NCBI_output_sra_03_species_singleNCBI_taxID_search_combined.txt")
+system("cat NCBI_search/taxIDs/NCBI_output_sra_05_subspecies_singleNCBI_taxID_search_chunk_* > NCBI_search/taxIDs/NCBI_output_sra_05_subspecies_singleNCBI_taxID_search_combined.txt")
+system("cat NCBI_search/taxIDs/NCBI_output_sra_06_genus_singleNCBI_taxID_search_chunk_* > NCBI_search/taxIDs/NCBI_output_sra_06_genus_singleNCBI_taxID_search_combined.txt")
+```
 
 # Import NCBI mitochondrial and WGS results
 ```{r}
-File03_taxid_search <- read_delim(here("NCBI_search/taxIDs/country_filter/nearlowest_priority_closeRegion//NCBI_output_03_species_singleNCBI_taxID_search_nucl_combined.txt"), col_types = "c", na = c("","NA"), col_names = c("AccessionVersion", "Title", "CreateDate", "Organism", "TaxId", "MolType", "Genome", "Completeness", "Topology", "Slen", "SubType", "SubName"))
+File03_taxid_search <- read_delim("NCBI_search/taxIDs/NCBI_output_mito_03_species_singleNCBI_taxID_search_combined.txt", col_types = "c", na = c("","NA"), col_names = c("AccessionVersion", "Title", "CreateDate", "Organism", "TaxId", "MolType", "Genome", "Completeness", "Topology", "Slen", "SubType", "SubName"))
 
-File03_sra_search <- read_csv(here("NCBI_search/taxIDs/NCBI_output_03_species_singleNCBI_taxID_search_sra_combined.txt"), col_types = cols(.default = col_character()), na = c("","NA"), col_names = TRUE)
+File03_sra_search <- read_csv("NCBI_search/taxIDs/NCBI_output_sra_03_species_singleNCBI_taxID_search_combined.txt", col_types = cols(.default = col_character()), na = c("","NA"), col_names = TRUE)
 
-File05_taxid_search <- read_delim(here("NCBI_search/taxIDs/country_filter/lowest_priority_exactRegion/NCBI_output_05_subspecies_singleNCBI_taxID_search_nucl_combined.txt"), col_types = "c", na = c("","NA"), col_names = c("AccessionVersion", "Title", "CreateDate", "Organism", "TaxId", "MolType", "Genome", "Completeness", "Topology", "Slen", "SubType", "SubName"))
+File05_taxid_search <- read_delim("NCBI_search/taxIDs/NCBI_output_mito_05_subspecies_singleNCBI_taxID_search_combined.txt", col_types = "c", na = c("","NA"), col_names = c("AccessionVersion", "Title", "CreateDate", "Organism", "TaxId", "MolType", "Genome", "Completeness", "Topology", "Slen", "SubType", "SubName"))
 
-File05_sra_search <- read_csv(here("NCBI_search/taxIDs/NCBI_output_05_subspecies_singleNCBI_taxID_search_sra_combined.txt"), col_types = cols(.default = col_character()), na = c("","NA"), col_names = TRUE)
+File05_sra_search <- read_csv("NCBI_search/taxIDs/NCBI_output_sra_05_subspecies_singleNCBI_taxID_search_combined.txt", col_types = cols(.default = col_character()), na = c("","NA"), col_names = TRUE)
 
-File06_taxid_search <- read_delim(here("NCBI_search/taxIDs/country_filter/nearlowest_priority_closeRegion//NCBI_output_06_genus_singleNCBI_taxID_search_nucl_combined.txt"), col_types = "c", na = c("","NA"), col_names = c("AccessionVersion", "Title", "CreateDate", "Organism", "TaxId", "MolType", "Genome", "Completeness", "Topology", "Slen", "SubType", "SubName"))
+File06_taxid_search <- read_delim("NCBI_search/taxIDs/NCBI_output_mito_06_genus_singleNCBI_taxID_search_combined.txt", col_types = "c", na = c("","NA"), col_names = c("AccessionVersion", "Title", "CreateDate", "Organism", "TaxId", "MolType", "Genome", "Completeness", "Topology", "Slen", "SubType", "SubName"))
 
-File06_sra_search <- read_csv(here("NCBI_search/taxIDs/NCBI_output_06_genus_singleNCBI_taxID_search_sra_combined.txt"), col_types = cols(.default = col_character()), na = c("","NA"), col_names = TRUE)
+File06_sra_search <- read_csv("NCBI_search/taxIDs/NCBI_output_sra_06_genus_singleNCBI_taxID_search_combined.txt", col_types = cols(.default = col_character()), na = c("","NA"), col_names = TRUE)
 
 ```
 
@@ -1577,8 +1592,6 @@ UPDATED_FULL_RECORD_DB_newbackup <- UPDATED_FULL_RECORD_DB
 
 #Pull in NCBI taxonomy from direct hits for identifier and accepted_NCBI
 ```{r}
-
-taxa_outfile_ncbi <- "/Users/mcallister/software/blastdb/taxonomizr/20241206_ncbiTax/accessionTaxa.sql"
 prepareDatabase(taxa_outfile_ncbi)
 
 UPDATED_FULL_RECORD_DB <- UPDATED_FULL_RECORD_DB %>%
@@ -1611,41 +1624,103 @@ UPDATED_FULL_RECORD_DB <- UPDATED_FULL_RECORD_DB %>%
 
 ```
 
-#Merge scientific name table (UPDATED_FULL_RECORD_DB) with the NEP request table
-```{r}
-NEP_list_merge_records <- left_join(NEP_list_assembled_clean, UPDATED_FULL_RECORD_DB, by = "Scientific.Name")
 
-NEP_list_merge_records$row_id %>%  length()
-NEP_list_merge_records$row_ids %>% unique() %>%  length()
-NEP_list_merge_records$AphiaID %>% unique() %>%  length()
-NEP_list_merge_records$identifier %>% unique() %>%  length()
+#TODO: Check why no aphiaID is set taxonrank to species
+
+
+#Local BOLD Searching
+```{r}
+vector_names <- UPDATED_FULL_RECORD_DB %>%
+  select(Scientific.Name, scientificName, acceptedNameUsage, speciesNOsubgenus) %>%
+  mutate(across(everything(), toupper)) %>%
+  unlist(use.names = FALSE) %>%
+  unique() %>%
+  na.omit()
+
+search_terms <- c("bold_recordset_code_arr", vector_names)
+writeLines(search_terms, "BOLD_search_patterns.txt")
+
+system(paste0('grep -iF -f BOLD_search_patterns.txt ',BOLD_local,' > BOLD_line_matches.txt'))
+
+setwd(exportdir)
+input_list_merge_records <- read.delim("export/FINAL_merge_records.txt", header=TRUE, stringsAsFactors=FALSE, na = c("","NA"))
+UPDATED_FULL_RECORD_DB <- read.delim("export/scientificNameTable_FINAL_CompleteDatabase.txt", header=TRUE, stringsAsFactors=FALSE, na = c("","NA"))
+
+```
+
+#Remote BOLD Searching
+```{r}
+vector_names <- UPDATED_FULL_RECORD_DB %>%
+  select(Scientific.Name, scientificName, acceptedNameUsage, speciesNOsubgenus) %>%
+  mutate(across(everything(), toupper)) %>%
+  unlist(use.names = FALSE) %>%
+  unique() %>%
+  na.omit()
+
+BOLD_names_db <- data.frame(Scientific.Name = vector_names)
+
+bold_results <- bold_tax_name(BOLD_names_db$Scientific.Name, fuzzy = TRUE)
+```
+
+
+
+
+
+
+
+
+#TODO REMOVE POSITIVE CONTROLS FROM TABLE
+
+#Merge scientific name table (UPDATED_FULL_RECORD_DB) with the original request table
+```{r}
+scientific_name_table_expanded <- UPDATED_FULL_RECORD_DB %>%
+  separate_rows(row_ids, sep = ";")
+
+input_list_merge_records <- input_list_clean %>%
+  left_join(scientific_name_table_expanded, by = c("row_id" = "row_ids")) %>%
+  mutate(
+    Scientific.Name = if_else(
+      Scientific.Name.x == Scientific.Name.y,
+      coalesce(Scientific.Name.x, Scientific.Name.y),
+      paste(Scientific.Name.x, Scientific.Name.y, sep = ";")
+    )
+  ) %>%
+  select(-Scientific.Name.x, -Scientific.Name.y)
+
+input_list_merge_records$row_id %>%  length()
+input_list_merge_records$row_id %>% unique() %>%  length()
+input_list_merge_records$AphiaID %>% unique() %>%  length()
+input_list_merge_records$identifier %>% unique() %>%  length()
 
 ```
 
 #Export the full record DB
 ```{r}
-write.table(NEP_list_merge_records, file=here("export/NEP_list_FINAL_merge_records.txt"), sep='\t', quote=FALSE, row.names=FALSE, col.names = TRUE)
+write.table(input_list_merge_records, file="export/FINAL_merge_records.txt", sep='\t', quote=FALSE, row.names=FALSE, col.names = TRUE)
 
-write.table(UPDATED_FULL_RECORD_DB, file=here("export/scientificNameTable_FINAL_CompleteDatabase.txt"), sep='\t', quote=FALSE, row.names=FALSE, col.names = TRUE)
+write.table(UPDATED_FULL_RECORD_DB, file="export/scientificNameTable_FINAL_CompleteDatabase.txt", sep='\t', quote=FALSE, row.names=FALSE, col.names = TRUE)
 
 possible_taxa_ranks <- unique(UPDATED_FULL_RECORD_DB$taxonRank)
 possible_taxa_ranks <- possible_taxa_ranks[!is.na(possible_taxa_ranks)]
 
 for (taxon in possible_taxa_ranks) {
   filtered_df <- subset(UPDATED_FULL_RECORD_DB, taxonRank == taxon)
-  output_file <- here(paste0("export/separateTaxonRanks/scientificNameTable_FINAL_", taxon, "Database.txt"))
+  output_file <- paste0("export/separateTaxonRanks/scientificNameTable_FINAL_", taxon, "Database.txt")
   write.table(filtered_df, file=output_file, sep='\t', quote=FALSE, row.names=FALSE, col.names=TRUE)
 }
 
 filtered_df <- subset(UPDATED_FULL_RECORD_DB, taxonRank %in% c("Species", "Subspecies", "Forma", "Variety"))
-write.table(filtered_df, file=here("export/scientificNameTable_FINAL_SpeciesPlusSubDatabase.txt"), sep='\t', quote=FALSE, row.names=FALSE, col.names=TRUE)
+write.table(filtered_df, file="export/scientificNameTable_FINAL_SpeciesPlusSubDatabase.txt", sep='\t', quote=FALSE, row.names=FALSE, col.names=TRUE)
 
 filtered_df <- subset(UPDATED_FULL_RECORD_DB, taxonRank %in% c("Genus", "Subgenus"))
-write.table(filtered_df, file=here("export/scientificNameTable_FINAL_GenusPlusSubgenusDatabase.txt"), sep='\t', quote=FALSE, row.names=FALSE, col.names=TRUE)
+write.table(filtered_df, file="export/scientificNameTable_FINAL_GenusPlusSubgenusDatabase.txt", sep='\t', quote=FALSE, row.names=FALSE, col.names=TRUE)
 
 ```
 
 #Prioritization
+
+#SHOULD ALSO INCLUDE prioritization based on proximity to mitogenome hit (same species, genus, family)
+
 ```{r}
 PRIORITY <- read_xlsx(here("export","scientificNameTable_FINAL_GeneraSpeciesDatabase_RegionPriority.xlsx"), na = "NA", col_types = "text")
 
