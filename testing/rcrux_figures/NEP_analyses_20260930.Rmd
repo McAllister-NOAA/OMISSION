@@ -1,0 +1,393 @@
+---
+title: "NEP 20260929"
+author: "Zachary Gold"
+date: "2026-09-30"
+output: html_document
+---
+
+
+
+```{r}
+library(taxonomizr)
+library(here)
+library(tidyverse)
+library(readxl)
+library(worrms)
+library(ggpubr)
+library(patchwork)
+```
+
+```{r}
+FINAL_merge_records <- read.delim("2026_14_IntertidalLists/FINAL_merge_records.txt")
+
+#Quick notes:
+## Many NAs are higher level taxa
+## Many are also common names/general bins
+## Another subset are new species
+## Clearly a lot of typos
+## Some hybrid names
+## Alot of older taxonomy
+colnames(FINAL_merge_records)
+FINAL_merge_records %>% head()
+```
+
+```{r}
+FINAL_merge_records %>% 
+  select(accepted_NCBI) %>% 
+  distinct() %>% 
+  filter(., accepted_NCBI !="NA")  -> ncbi_ids
+
+FINAL_merge_records$Point.of.Contact.for.Submission %>%  unique()
+FINAL_merge_records$Project.Request %>%  unique()
+
+```
+
+
+
+```{r}
+
+FINAL_merge_records %>%  colnames()
+FINAL_merge_records %>% 
+  mutate(Submitted_name = Scientific.Name,
+         WORMS_name =scientificName) %>% 
+  select(Submitted_name,AphiaID,kingdom,phylum, class, order,family, genus, WORMS_name , accepted_NCBI,NCBI_accepted_kingdom,NCBI_accepted_phylum,
+                NCBI_accepted_class,
+                NCBI_accepted_order,
+                NCBI_accepted_family,
+                NCBI_accepted_genus,
+                NCBI_accepted_species) %>% 
+  distinct() %>% 
+  mutate(., Matched = case_when(is.na(accepted_NCBI) ~"Not in NCBI",
+    WORMS_name==NCBI_accepted_species ~"In NCBI",
+    Submitted_name==NCBI_accepted_species ~"Submitted_NCBI_Matched",
+    TRUE ~"Different Taxonomic Name")) -> NEP_species_WORMS_NCBI_merged
+
+NEP_species_WORMS_NCBI_merged %>%  filter(., Matched == "Different Taxonomic Name") -> weird
+
+FINAL_merge_records %>% 
+  filter(., AphiaID %in% weird$AphiaID)
+```
+
+```{r}
+FINAL_merge_records$Project.Request %>%  unique() %>% sort()
+
+```
+## General Summary Stats
+
+```{r}
+
+FINAL_merge_records$kingdom %>% unique() %>% length()
+FINAL_merge_records$phylum %>% unique() %>% length()
+FINAL_merge_records$class %>% unique() %>% length() -1
+FINAL_merge_records$order %>% unique() %>% length() -1
+FINAL_merge_records$family %>% unique() %>% length() -1
+FINAL_merge_records$genus %>% unique() %>% length() -1
+FINAL_merge_records$species %>% unique() %>% length() -1
+
+```
+
+```{R}
+
+NEP_species_WORMS_NCBI_merged %>% 
+ count() -> total_unique_species
+
+NEP_species_WORMS_NCBI_merged %>% 
+  group_by(Matched) %>% 
+  count() %>% 
+  mutate(., perc= n/total_unique_species$n*100) 
+
+# 35% of species are not in NCBI, but it's possible some of these species could be in NCBI but with the wrong name
+```
+
+
+## Bar Plot of Missing Phyla
+```{r}
+library(NatParksPalettes)
+natparks.pals("Yellowstone") -> yellowstone_pal
+
+
+NEP_species_WORMS_NCBI_merged %>% 
+  group_by(phylum, Matched)%>% 
+  count() %>% 
+  arrange(desc(n)) %>% 
+  ggplot(., aes(x=reorder(phylum, -n), y=n, fill=Matched)) +  geom_bar(position="fill", stat="identity")  + theme_pubclean()  +
+  theme(axis.text.x = element_text(angle = -70, vjust = 0, hjust=0.2),
+        legend.position = "right")+ ylab("Percent") + xlab("Phyla") +scale_fill_manual(values=c(yellowstone_pal[1], yellowstone_pal[4],yellowstone_pal[3]))+ guides(fill=guide_legend(title="Metric"))+ theme(plot.title = element_text(hjust = 0.5,size = 20, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5,size = 18, face = "bold"),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.text=element_text(size=14), 
+        axis.title=element_text(size=16,face="bold"),
+        legend.title = element_text( size=16, face="bold"),
+        legend.text = element_text(size=14)
+        )-> plot1a
+plot1a
+```
+
+```{r}
+NEP_species_WORMS_NCBI_merged %>% 
+  group_by(phylum, Matched)%>% 
+  count() %>% 
+  arrange(desc(n)) %>% 
+  ggplot(., aes(x=reorder(phylum, -n), y=n, fill=Matched)) + 
+    geom_bar(position="stack", stat="identity")  + theme_pubclean()  +
+  theme(axis.text.x = element_text(angle = -70, vjust = 0, hjust=0.2),
+        legend.position = "right")+ ylab("Species") + xlab("Phyla")  +scale_fill_manual(values=c(yellowstone_pal[1], yellowstone_pal[4],yellowstone_pal[3]))+ guides(fill=guide_legend(title="Metric"))+ theme(plot.title = element_text(hjust = 0.5,size = 20, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5,size = 18, face = "bold"),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.text=element_text(size=14), 
+        axis.title=element_text(size=16,face="bold"),
+        legend.title = element_text( size=16, face="bold"),
+        legend.text = element_text(size=14)
+        )-> plot1b
+plot1b
+```
+
+```{r}
+
+plot1a+plot1b + plot_layout(guides = "collect")
+
+ggsave(plot= plot1a+plot1b + plot_layout(guides = "collect"), 
+       filename = here("figures","20260929_update","All_species.png"),
+       width=16,
+       height = 6,
+       dpi = 300,
+      units = c("in"))
+```
+
+# rCRUX
+
+### Leray CO1
+```{r}
+
+leray_co1_db <- read.csv(file="~/Documents/GitHub/fishDB-comparison/rCRUX_dbs/CO1_combined/blast_seeds_output/summary.csv")
+
+leray_co1_db$species %>%  unique() -> leray_co1_species
+
+natparks.pals("DeathValley") -> DeathValley_pal
+
+
+NEP_species_WORMS_NCBI_merged %>% 
+ mutate(., Matched_co1 = case_when(is.na(NCBI_accepted_species) ~"Taxonomy Not in NCBI",
+    NCBI_accepted_species %in% leray_co1_species ~"Leray CO1 Reference Exists",
+    WORMS_name %in% leray_co1_species ~"Leray CO1 Reference Exists",
+    TRUE ~"No Leray CO1 Reference")) -> co1_matched
+
+```
+
+```{r}
+co1_matched %>% 
+   group_by(Matched_co1) %>% 
+  count() %>% 
+  mutate(., perc= n/total_unique_species$n*100) 
+
+
+```
+
+```{r}
+
+co1_matched %>% 
+   group_by(phylum, Matched_co1)%>% 
+  count() %>% 
+  arrange(desc(n))  %>% 
+  ggplot(., aes(x=reorder(phylum, -n), y=n, fill=Matched_co1)) + 
+    geom_bar(position="stack", stat="identity")  + theme_pubclean()  +
+  theme(axis.text.x = element_text(angle = -70, vjust = 0, hjust=0.2),
+        legend.position = "right")+ ylab("Species") + xlab("Phyla")  +scale_fill_manual(values=c(DeathValley_pal[5], DeathValley_pal[1],DeathValley_pal[2], DeathValley_pal[7])) +ggtitle(label="All Phyla")+ guides(fill=guide_legend(title="Metric"))+ theme(plot.title = element_text(hjust = 0.5,size = 20, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5,size = 18, face = "bold"),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.text=element_text(size=16), 
+        axis.title=element_text(size=16,face="bold"),
+        legend.title = element_text( size=16, face="bold"),
+        legend.text = element_text(size=14)
+        )-> plot_2a
+
+plot_2a
+```
+
+```{r}
+
+
+NEP_species_WORMS_NCBI_merged %>% 
+ mutate(., Matched_co1 = case_when(is.na(NCBI_accepted_species) ~"Taxonomy Not in NCBI",
+    NCBI_accepted_species %in% leray_co1_species ~"Leray CO1 Reference Exists",
+    WORMS_name %in% leray_co1_species ~"Leray CO1 Reference Exists",
+    TRUE ~"No Leray CO1 Reference")) %>% 
+    filter(., phylum=="Arthropoda") %>% 
+   group_by(family, Matched_co1)%>% 
+  count() %>% 
+  arrange(desc(n)) ->  co1_arthropods
+
+co1_arthropods %>% 
+  filter(., n >20) %>% 
+    dplyr::select(family) -> co1_arthropods_families_to_keep
+
+co1_arthropods %>% 
+  filter(family %in% co1_arthropods_families_to_keep$family) ->co1_arthropods_clean
+
+co1_arthropods_clean %>% 
+  group_by(family) %>% 
+  dplyr::summarise(tot=sum(n)) -> tot_arth_co1
+  
+  co1_arthropods_clean %>% 
+    left_join(tot_arth_co1) %>% 
+  ggplot(., aes(x=reorder(family, -tot), y=n, fill=Matched_co1)) + 
+    geom_bar(position="stack", stat="identity")  + theme_pubclean()  +
+  theme(axis.text.x = element_text(angle = -70, vjust = 0, hjust=0.2),
+        legend.position = "right")+ ylab("Species") + xlab("Families")  +scale_fill_manual(values=c(DeathValley_pal[5], DeathValley_pal[1],DeathValley_pal[2], DeathValley_pal[7]))+ggtitle(label="Arthropoda") + guides(fill=guide_legend(title="Metric"))+ theme(plot.title = element_text(hjust = 0.5,size = 20, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5,size = 18, face = "bold"),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.text=element_text(size=12), 
+        axis.title=element_text(size=16,face="bold"),
+        legend.title = element_text( size=16, face="bold"),
+        legend.text = element_text(size=14)
+        )-> plot_2b
+
+  plot_2b
+```
+
+```{r}
+
+
+ggsave(plot= plot_2a, 
+       filename = here("figures","20260929_update","rCRUX_CO1_comparison.png"),
+       width=16,
+       height = 6,
+       dpi = 300,
+      units = c("in"))
+```
+
+# Filter just for MARINe
+
+```{r}
+
+FINAL_merge_records %>% 
+  filter(.,Project.Request=="MARINe") %>% 
+  mutate(Submitted_name = Scientific.Name,
+         WORMS_name =scientificName) %>% 
+  select(Submitted_name,AphiaID,kingdom,phylum, class, order,family, genus, WORMS_name , accepted_NCBI,NCBI_accepted_kingdom,NCBI_accepted_phylum,
+                NCBI_accepted_class,
+                NCBI_accepted_order,
+                NCBI_accepted_family,
+                NCBI_accepted_genus,
+                NCBI_accepted_species) %>% 
+  distinct() %>% 
+  mutate(., Matched = case_when(is.na(accepted_NCBI) ~"Not in NCBI",
+    WORMS_name==NCBI_accepted_species ~"In NCBI",
+    Submitted_name==NCBI_accepted_species ~"Submitted_NCBI_Matched",
+    TRUE ~"Different Taxonomic Name")) -> NEP_species_WORMS_NCBI_merged_marine
+
+
+```
+
+```{r}
+
+
+NEP_species_WORMS_NCBI_merged_marine %>% 
+ mutate(., Matched_co1 = case_when(is.na(NCBI_accepted_species) ~"Taxonomy Not in NCBI",
+    NCBI_accepted_species %in% leray_co1_species ~"Leray CO1 Reference Exists",
+    WORMS_name %in% leray_co1_species ~"Leray CO1 Reference Exists",
+    TRUE ~"No Leray CO1 Reference")) -> co1_matched_marine
+
+```
+
+```{r}
+
+
+NEP_species_WORMS_NCBI_merged_marine %>% 
+ count() -> total_unique_species_marine
+
+co1_matched_marine %>% 
+   group_by(Matched_co1) %>% 
+  count() %>% 
+  mutate(., perc= n/total_unique_species_marine$n*100) 
+
+
+```
+
+```{r}
+
+co1_matched_marine %>% 
+   group_by(phylum, Matched_co1)%>% 
+  count() %>% 
+  arrange(desc(n))  %>% 
+  ggplot(., aes(x=reorder(phylum, -n), y=n, fill=Matched_co1)) + 
+    geom_bar(position="stack", stat="identity")  + theme_pubclean()  +
+  theme(axis.text.x = element_text(angle = -70, vjust = 0, hjust=0.2),
+        legend.position = "right")+ ylab("Species") + xlab("Phyla")  +scale_fill_manual(values=c(DeathValley_pal[5], DeathValley_pal[1],DeathValley_pal[2], DeathValley_pal[7])) +ggtitle(label="All Phyla")+ guides(fill=guide_legend(title="Metric"))+ theme(plot.title = element_text(hjust = 0.5,size = 20, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5,size = 18, face = "bold"),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.text=element_text(size=16), 
+        axis.title=element_text(size=16,face="bold"),
+        legend.title = element_text( size=16, face="bold"),
+        legend.text = element_text(size=14)
+        )-> plot_3a
+
+plot_3a
+```
+
+```{r}
+
+
+ggsave(plot= plot_3a, 
+       filename = here("figures","20260929_update","rCRUX_CO1_comparison_marine.png"),
+       width=16,
+       height = 6,
+       dpi = 300,
+      units = c("in"))
+```
+
+```{r}
+NEP_species_WORMS_NCBI_merged_marine %>% 
+  group_by(phylum, Matched)%>% 
+  count() %>% 
+  arrange(desc(n)) %>% 
+  ggplot(., aes(x=reorder(phylum, -n), y=n, fill=Matched)) + 
+    geom_bar(position="stack", stat="identity")  + theme_pubclean()  +
+  theme(axis.text.x = element_text(angle = -70, vjust = 0, hjust=0.2),
+        legend.position = "right")+ ylab("Species") + xlab("Phyla")  +scale_fill_manual(values=c(yellowstone_pal[1], yellowstone_pal[4],yellowstone_pal[3]))+ guides(fill=guide_legend(title="Metric"))+ theme(plot.title = element_text(hjust = 0.5,size = 20, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5,size = 18, face = "bold"),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.text=element_text(size=14), 
+        axis.title=element_text(size=16,face="bold"),
+        legend.title = element_text( size=16, face="bold"),
+        legend.text = element_text(size=14)
+        )-> plot3b
+plot3b
+```
+
+```{r}
+
+
+ggsave(plot= plot3b, 
+       filename = here("figures","20260929_update","rCRUX_ncbi_comparison_marine.png"),
+       width=16,
+       height = 6,
+       dpi = 300,
+      units = c("in"))
+```
+
+```{r}
+
+
+NEP_species_WORMS_NCBI_merged_marine %>% 
+ count() -> total_unique_species_marine
+
+co1_matched_marine %>% 
+   group_by(Matched) %>% 
+  count() %>% 
+  mutate(., perc= n/total_unique_species_marine$n*100) 
+
+
+```
