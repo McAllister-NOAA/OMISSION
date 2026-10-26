@@ -1,13 +1,13 @@
 Scientific.Name	Issue
 ANTHO (ACARNIA) ILLGI	Non-alphanumeric characters
 ANTHO (ACARNIA) KARYKINA	Non-alphanumeric characters
+ARICIDEA (ACMIRA)	Non-alphanumeric characters
 ARICIDEA (ACMIRA) CATHERINAE	Non-alphanumeric characters
 ARICIDEA (ACMIRA) CERRUTII	Non-alphanumeric characters
 ARICIDEA (ACMIRA) HORIKOSHII	Non-alphanumeric characters
 ARICIDEA (ACMIRA) LOPEZI	Non-alphanumeric characters
 ARICIDEA (ACMIRA) RUBRA	Non-alphanumeric characters
 ARICIDEA (ACMIRA) SIMPLEX	Non-alphanumeric characters
-ARICIDEA (ACMIRA) SP SD1	Non-alphanumeric characters
 ARICIDEA (ACMIRA) TAYLORI	Non-alphanumeric characters
 ARICIDEA (AEDICIRA) PACIFICA	Non-alphanumeric characters
 ARICIDEA (ARICIDEA)	Non-alphanumeric characters
@@ -26,14 +26,10 @@ CLATHRIA (MICROCIONA) PARTHENA	Non-alphanumeric characters
 CLATHRIA (MICROCIONA) PENNATA	Non-alphanumeric characters
 CLATHRIA (MICROCIONA) SPONGIGARTINA	Non-alphanumeric characters
 CLATHRIA (THALYSIAS) ORIGINALIS	Non-alphanumeric characters
-CLAVICEPS PURPUREA VAR. SPARTINAE	Non-alphanumeric characters
-CODIUM FRAGILE SSP. FRAGILE	Non-alphanumeric characters
 CORALLINE ALGAE -CRUSTOSE	Non-alphanumeric characters
-CRYPTOPLEURA/HYMENENA	Non-alphanumeric characters
 DORVILLEA (DORVILLEA)	Non-alphanumeric characters
 DORVILLEA (SCHISTOMERINGOS) ANNULATA	Non-alphanumeric characters
 DORVILLEA (SCHISTOMERINGOS) LONGICORNIS	Non-alphanumeric characters
-EPIGAMIA-MYRIANIDA	Non-alphanumeric characters
 GONIOTRICHUM CORNU-CERVI	Non-alphanumeric characters
 HALICLONA (FLAGELLIA) EDAPHUS	Non-alphanumeric characters
 HALICLONA (HALICHOCLONA) GELLINDRA	Non-alphanumeric characters
@@ -41,7 +37,6 @@ HALICLONA (HALICLONA)	Non-alphanumeric characters
 HALICLONA (RHIZONIERA) ENAMELA	Non-alphanumeric characters
 LIMPETS 5-15 MM IN SIZE ON ALL SUBSTRATE	Non-alphanumeric characters
 LIMPETS OVER 15 MM IN SIZE ON ANY SUBSTRATE/ORGANISM	Non-alphanumeric characters
-NICOLEA. HARRIS	Non-alphanumeric characters
 NON-CORALLINE CRUSTS	Non-alphanumeric characters
 PILEOLARIA (PILEOLARIA) MARGINATA	Non-alphanumeric characters
 PROTOLAEOSPIRA (PROTOLAEOSPIRA) EXIMIA	Non-alphanumeric characters
@@ -55,7 +50,10 @@ SCOLELEPIS (SCOLELEPIS) OCCIDENTALIS	Non-alphanumeric characters
 SCOLELEPIS (SCOLELEPIS) SQUAMATA	Non-alphanumeric characters
 STYLONEMA CORNU-CERVI	Non-alphanumeric characters
 TEDANIA (TEDANIOPSIS) GURJANOVAE	Non-alphanumeric characters
-TRYPANOSYLLIS (TRYPANEDENTATA)	Non-alphanumeric characters
+TEXOSPORIUM SANCTI-JACOBI	Non-alphanumeric characters
+TRYPANOSYLLIS (TRYPANEDENTA)	Non-alphanumeric characters
+TUNICATE -SOLITARY	Non-alphanumeric characters
+UNDESCRIBED "GIANT LOBATE"	Non-alphanumeric characters
 UNKNOWN SPECIES A	Single letter tail
 UNKNOWN SPECIES H	Single letter tail
 VERTICAL RELIEF: SLIGHT	Non-alphanumeric characters

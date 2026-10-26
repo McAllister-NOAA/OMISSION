@@ -12,15 +12,30 @@ library(taxonomizr)
 library(readxl)
 library(knitr)
 library(bold)
+library(BOLDconnectR)
+library(rentrez)
+library(XML)
+library(httr2)
+library(jsonlite)
+library(data.table)
 ```
 
-# User VARIABLES
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # 
+# # 
+# # 
+# # MANUAL: Modify User Variables HERE
+# # 
+# # 
+# # 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 ```{r}
 #Export/Import info
 path_to_omission <- "/Users/mcallister/software/scripts/github/OMISSION" #path to the OMISSION directory (not the Rmd)
-exportdir <- "/Users/mcallister/Desktop/03_Projects/03_Mitogenomes/gap_analysis/10_testing/"
-inputfile <- "/Users/mcallister/Desktop/03_Projects/03_Mitogenomes/gap_analysis/10_testing/list_input.csv"
-headerName <- "scientific_name" #This is the name of the header column in your tab-delimited text file where the query organism names are stored.
+exportdir <- "/Users/mcallister/Desktop/03_Projects/03_Mitogenomes/gap_analysis/15_2026_IntertidalLists/"
+inputfile <- "/Users/mcallister/Desktop/03_Projects/03_Mitogenomes/gap_analysis/15_2026_IntertidalLists/NULL"
+headerName <- "Scientific.Name" #This is the name of the header column in your tab-delimited text file where the query organism names are stored.
 
 #WORMS db download
 WORMS_db_taxontxt_location <- "/Users/mcallister/Desktop/03_Projects/03_Mitogenomes/gap_analysis/05_NEP_FINAL_Update/WoRMS_download_2024-08-01/taxon.txt"
@@ -31,21 +46,52 @@ subtree_path <- "/usr/local/bin/taxi"
 nodes_dmp_path <- "/Users/mcallister/software/blastdb/20241127_taxdump/nodes.dmp"
 
 #For taxonomizr (this is the name of the output file to be created [if never run] or used)
-taxa_outfile_ncbi <- "/Users/mcallister/software/blastdb/taxonomizr/20241206_ncbiTax/accessionTaxa.sql"
+taxa_outfile_ncbi <- "/Users/mcallister/software/blastdb/taxonomizr/20261020_ncbiTax/accessionTaxa.sql"
+prepareDatabase(taxa_outfile_ncbi) #Note that this takes a long time to run the first time (if never set up). Once run, this is just a check that it exists.
 
 #BOLD Database Download
 BOLD_local <- "/Users/mcallister/Desktop/03_Projects/03_Mitogenomes/gap_analysis/BOLD_dl/BOLD_Public.15-Aug-2025/BOLD_Public.15-Aug-2025.tsv"
 
+#If you want to skip the SRA web lookup, indicate here. It takes a very long time.
+skip_SRA <- FALSE
 ```
 
 # Set the working directory
 ```{r, setup, include=FALSE}
 knitr::opts_knit$set(root.dir = exportdir)
+
 ```
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # 
+# # MANUAL: IF you have a prior run and want to import the exported files from OMISSION for additional annotation.
+# # Uses the exportdir above to look for the appropriate files.
+# # DON'T RUN THIS IF IT IS YOUR FIRST RUN OF OMISSION
+# # After running, skip to section of interest.
+# # 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+```{r}
+exported_scientificNameTable <- read_delim("export/scientificNameTable_FINAL_CompleteDatabase.txt", col_types = cols(.default = col_character()), na = c("","NA"))
+
+exported_finalMergeRecords <- read_delim("export/FINAL_merge_records.txt", col_types = cols(.default = col_character()), na = c("","NA"))
+
+input_list_merge_records <- exported_finalMergeRecords
+
+# TODO: Come up with non-hardcoded mechanism:
+# input_list_clean <- input_list_merge_records %>%
+#   select(row_id, Project.Request, Point.of.Contact.for.Submission, Email, Common.Name, Survey.Type, original_Scientific.Name, Scientific.Name)
+
+
+
+UPDATED_FULL_RECORD_DB <- exported_scientificNameTable
+
+```
+
 
 # Run import_and_clean.R automated script (rerun with MANUAL editing of odd names)
 ```{r}
-system(paste0("Rscript --vanilla ", path_to_omission, "/assets/import_and_clean.R ", exportdir, " ", inputfile, " ", headerName, sep=""))
+command_importClean <- paste0("Rscript --vanilla ", path_to_omission, "/assets/import_and_clean.R ", exportdir, " ", inputfile, " '", headerName, "'", sep="")
+system(command_importClean)
 ```
 
 # Prepare outfolder and import import_and_clean.R result
@@ -80,6 +126,47 @@ if (nrow(filtered_positive_control) < 2) {
 }
 
 positive_control <- filtered_positive_control
+
+# #Add information on subtree taxids for the positive controls
+# positive_control <- positive_control %>%
+#   mutate(subtree_taxIDs = NA_character_)
+# 
+# positive_subtree_input_file <- "NCBI_search/taxIDs/positive_taxids_onePerLine.txt"
+# positive_subtree_output_file <- "NCBI_search/taxIDs/positive_subtree_taxids.txt"
+# 
+# positive_taxid_list <- positive_control %>%
+#   select(NCBI_taxID) %>%
+#   mutate(NCBI_taxID = str_remove(NCBI_taxID, "NCBI:txid")) %>%
+#   pull(NCBI_taxID)
+# 
+# writeLines(positive_taxid_list, positive_subtree_input_file)
+# 
+# system(glue::glue("{subtree_path} descendants {nodes_dmp_path} {positive_subtree_input_file} > {positive_subtree_output_file}"))
+# 
+# positive_subtree_import <- read_delim(positive_subtree_output_file, col_types = cols(.default = col_character()), na = c("","NA"), col_names = FALSE)
+# positive_subtree_import <- positive_subtree_import %>% dplyr::rename(query = X1, subtree_result = X2)
+# positive_subtree_import$query <- gsub("^", "NCBI:txid", positive_subtree_import$query)
+# positive_subtree_import$subtree_result <- gsub("^", "NCBI:txid", positive_subtree_import$subtree_result)
+# collapsed_positive_subtree <- positive_subtree_import %>%
+#   group_by(query) %>%
+#   summarize(
+#     subtree_result = paste(unique(subtree_result), collapse = ";"),
+#     .groups = "drop"
+#   )
+# 
+# positive_control <- positive_control %>%
+#   left_join(
+#     collapsed_positive_subtree,
+#     by = c("NCBI_taxID" = "query")
+#   ) %>%
+#   mutate(
+#     subtree_taxIDs = if_else(
+#       !is.na(subtree_result),
+#       subtree_result,
+#       NCBI_taxID
+#     )
+#   ) %>%
+#   select(-subtree_result)
 
 #Add positive controls to the query list
 positive_names <- filtered_positive_control %>%
@@ -136,9 +223,16 @@ scientific_name_table_NO_APHIAID <- scientific_name_table_NO_APHIAID %>%
 write.table(scientific_name_table_NO_APHIAID, file='MANUALCHECK1_NOAPHIAID.txt', sep='\t', quote=FALSE, row.names=FALSE, col.names = TRUE)
 ```
 
-# Run MANUAL check1 by using the WoRMS Taxon Match tool (https://www.marinespecies.org/aphia.php?p=match).
-# Output with all metadata. Fix any ambiguous call (drop downs). Export as Excel (xlsx).
-# Import external WORMS search and merge
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # 
+# # 
+# # MANUAL: Run MANUAL check1 by using the WoRMS Taxon Match tool (https://www.marinespecies.org/aphia.php?p=match).
+# # Output with all metadata. Fix any ambiguous call (drop downs). Export as Excel (xlsx).
+# # Import external WORMS search and merge
+# # 
+# # 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 ```{r}
 NEWaddAphiaID <- read_xlsx("manualcheck1_noaphiaid_matched.xlsx", na = c("","NA"))
 NEWaddAphiaID <- NEWaddAphiaID %>% mutate(AphiaID = as.integer(AphiaID))
@@ -162,9 +256,16 @@ write.table(scientific_name_table_NO_APHIAID, file='MANUALCHECK2_NOAPHIAID.txt',
 
 ```
 
-# Run MANUAL check2. Search names manually to check for mispellings. Add "AphiaID" column and supply manually. Any that you do not wish to fix can be left blank.
-# DO NOT MODIFY SCIENTIFIC NAMES
-# Import external WORMS search/manual no_aphiaID correction and merge
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # 
+# # 
+# # MANUAL: Run MANUAL check2. Search names manually to check for mispellings. Add "AphiaID" column and supply manually. Any that you do not wish to fix can be left blank.
+# # DO NOT MODIFY SCIENTIFIC NAMES
+# # Import external WORMS search/manual no_aphiaID correction and merge
+# # 
+# # 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 ```{r}
 NEWaddAphiaID <- read_delim("MANUALCHECK2_NOAPHIAID.txt", na = c("","NA"))
 NEWaddAphiaID <- NEWaddAphiaID %>% mutate(AphiaID = as.integer(AphiaID))
@@ -211,12 +312,31 @@ WORMS_db$speciesNOsubgenus <- ifelse(
   gsub("\\s*\\([^\\)]+\\)", "", WORMS_db$scientificName),  # Remove text within parentheses
   NA  # For rows that are not "Species" or "Subspecies", set as NA
 )
+
+WORMS_db <- WORMS_db %>% mutate(AphiaID = as.integer(AphiaID))
+
+WORMS_db <- WORMS_db %>%
+ group_by(Accepted_AphiaID) %>%
+  mutate(
+    unacceptedAphiaID = if (is.na(first(Accepted_AphiaID))) {
+      NA_character_
+    } else {
+      ids <- unique(AphiaID[!is.na(AphiaID) & AphiaID != first(Accepted_AphiaID)])
+      if (length(ids) == 0) NA_character_ else paste(ids, collapse = ";")
+    }
+  ) %>%
+  ungroup()
+
+if ("datasetID.x" %in% names(WORMS_db) &&
+    all(is.na(WORMS_db$datasetID.x))) {
+  WORMS_db <- WORMS_db %>%
+    select(-datasetID.x) %>%
+    dplyr::rename(datasetID = datasetID.y)
+}
 ```
 
 #PULL DATA FROM LOCAL WORMS DB (prepped in previous step)
 ```{r}
-WORMS_db <- WORMS_db %>% mutate(AphiaID = as.integer(AphiaID))
-
 merge_scientificName_WORMSdb <- left_join(scientific_name_table_withAPHIAID, WORMS_db, by = "AphiaID")
 merge_scientificName_WORMSdb <- merge_scientificName_WORMSdb %>% mutate(parent_AphiaID = as.integer(parent_AphiaID))
 merge_scientificName_WORMSdb <- merge_scientificName_WORMSdb %>% mutate(Accepted_AphiaID = as.integer(Accepted_AphiaID))
@@ -224,11 +344,11 @@ backup_merge_scientificName_WORMSdb <- merge_scientificName_WORMSdb
 
 parent_identifier <- WORMS_db %>%
   dplyr::select(AphiaID, identifier) %>%
-  rename(parent_AphiaID = AphiaID, parent_NCBI = identifier)
+  dplyr::rename(parent_AphiaID = AphiaID, parent_NCBI = identifier)
 
 accepted_identifier <- WORMS_db %>%
   dplyr::select(AphiaID, identifier) %>%
-  rename(Accepted_AphiaID = AphiaID, accepted_NCBI = identifier)
+  dplyr::rename(Accepted_AphiaID = AphiaID, accepted_NCBI = identifier)
 
 merge_scientificName_WORMSdb <- merge_scientificName_WORMSdb %>%
   left_join(parent_identifier, by = "parent_AphiaID") %>%
@@ -256,7 +376,8 @@ record_noWORMSlocal_match_backup <- WORMS_api
 
 #Merge any new records from search effort
 ```{r}
-new_records_df <- do.call(rbind, WORMS_api)
+new_records_df <- dplyr::bind_rows(WORMS_api)
+
 still_missing <- new_records_df %>% filter(is.na(url))
 
 new_records_df <- new_records_df %>%
@@ -285,7 +406,7 @@ new_records_parent_AphiaID <- new_records_trimCol %>%
   filter(!is.na(parent_AphiaID))
 new_records_parent_AphiaID <- new_records_parent_AphiaID %>% mutate(parent_AphiaID = as.integer(parent_AphiaID))
 parent_record_lu <- wm_record_(id = new_records_parent_AphiaID$parent_AphiaID)
-parent_record_lu_df <- do.call(rbind, parent_record_lu)
+parent_record_lu_df <- dplyr::bind_rows(parent_record_lu)
 
 parent_NCBI_lu <- wm_external_(new_records_parent_AphiaID$parent_AphiaID, type = "ncbi")
 parent_NCBI_lu_df <- do.call(rbind, parent_NCBI_lu)
@@ -447,8 +568,8 @@ merge_scientificName_WORMSdb_addmissingRecords <- full_join(
     scientificName, acceptedNameUsage, parentNameUsage, namePublishedIn, namePublishedInYear,
     kingdom, phylum, class, order, family, genus, subgenus, specificEpithet, infraspecificEpithet,
     taxonRank, scientificNameAuthorship, taxonomicStatus, modified, bibliographicCitation, references,
-    identifier, title, datasetID.y,
-    Accepted_AphiaID, parent_AphiaID, speciesNOsubgenus, parent_NCBI, accepted_NCBI,
+    identifier, title, datasetID,
+    Accepted_AphiaID, parent_AphiaID, speciesNOsubgenus, parent_NCBI, accepted_NCBI, unacceptedAphiaID,
     -matches("_orig$|-_new$")
   )
   
@@ -475,6 +596,8 @@ mismatches <- merged[!merged$Aphia_match | !merged$NCBI_match, ]
 
 if (nrow(mismatches) > 0) {
   stop("ERROR: Positive control mismatches detected in AphiaID or NCBI_taxID.")
+} else {
+  message("Positive controls have correct AphiaID and NCBI taxIDs")
 }
 ```
 
@@ -542,10 +665,11 @@ Species_wNCBIid_singleIdentifier <- Species_wNCBIid %>% #Can search on NCBI ids 
     (is.na(identifier) | !str_detect(identifier, ";")) &
     (is.na(accepted_NCBI) | !str_detect(accepted_NCBI, ";"))
   )
-Species_wNCBIid_multipleIdentifiers <- Species_wNCBIid %>% #Will need to deal with multi TaxIDs, so might do by hand
+Species_wNCBIid_multipleIdentifiers <- Species_wNCBIid %>%
   filter(
     (str_detect(identifier, ";")) |
-    (str_detect(accepted_NCBI, ";"))
+    (str_detect(accepted_NCBI, ";")) |
+    (str_detect(parent_NCBI, ";"))
   )
 
 #Subspecies_records
@@ -560,10 +684,11 @@ Subspecies_wNCBIid_singleIdentifier <- Subspecies_wNCBIid %>% #Can search on NCB
     (is.na(identifier) | !str_detect(identifier, ";")) &
     (is.na(accepted_NCBI) | !str_detect(accepted_NCBI, ";"))
   )
-Subspecies_wNCBIid_multipleIdentifiers <- Subspecies_wNCBIid %>% #Will need to deal with multi TaxIDs, so might do by hand
+Subspecies_wNCBIid_multipleIdentifiers <- Subspecies_wNCBIid %>%
   filter(
     (str_detect(identifier, ";")) |
-    (str_detect(accepted_NCBI, ";"))
+    (str_detect(accepted_NCBI, ";")) |
+    (str_detect(parent_NCBI, ";"))
   )
 
 #Genus_records
@@ -576,10 +701,11 @@ Genus_wNCBIid_singleIdentifier <- Genus_wNCBIid %>% #Can search on NCBI ids for 
     (is.na(identifier) | !str_detect(identifier, ";")) &
     (is.na(accepted_NCBI) | !str_detect(accepted_NCBI, ";"))
   )
-Genus_wNCBIid_multipleIdentifiers <- Genus_wNCBIid %>% #Will need to deal with multi TaxIDs, so might do by hand
+Genus_wNCBIid_multipleIdentifiers <- Genus_wNCBIid %>%
   filter(
     (str_detect(identifier, ";")) |
-    (str_detect(accepted_NCBI, ";"))
+    (str_detect(accepted_NCBI, ";")) |
+    (str_detect(parent_NCBI, ";"))
   )
 
 write.table(Genus_noNCBIid, file="export/scientificNameTable_GenusNoNCBI_NOT_SEARCHING_NCBI.txt", sep='\t', quote=FALSE, row.names=FALSE, col.names = TRUE)
@@ -606,59 +732,48 @@ list_for_name_search <- bind_rows(Subspecies_noNCBIid_recordORacceptedORparent, 
 species_names <- unique(na.omit(list_for_name_search$Scientific.Name))
 accepted_species_names <- unique(na.omit(list_for_name_search$acceptedNameUsage))
 accepted_species_names <- toupper(accepted_species_names)
-species_names_comb <- union(species_names, accepted_species_names)
+subspecies_names_comb <- union(species_names, accepted_species_names)
 
 max_entries <- 2000
-chunks <- create_chunks_with_controls(species_names_comb, max_entries, positive_names)
+chunks <- create_chunks_with_controls(subspecies_names_comb, max_entries, positive_names)
 for (i in seq_along(chunks)) {
   writeLines(chunks[[i]], paste0("04_subspecies_noNCBI_names_search_chunk_", i, ".txt"))
 }
 
-```
+#Potential old/unaccepted names
+all_existing_names <- unique(c(
+  species_names_comb,
+  subspecies_names_comb
+))
+all_existing_names <- toupper(trimws(na.omit(all_existing_names)))
 
-#MANUAL correction section (export, correct, rename with "_corrected.txt" on end, import/overwrite)
-```{r}
-write.table(Species_wNCBIid_multipleIdentifiers, file='Manual_correction_species_multiNCBI.txt', sep='\t', quote=FALSE, row.names=FALSE, col.names = TRUE)
-write.table(Subspecies_wNCBIid_multipleIdentifiers, file='Manual_correction_subspecies_multiNCBI.txt', sep='\t', quote=FALSE, row.names=FALSE, col.names = TRUE)
-write.table(Genus_wNCBIid_multipleIdentifiers, file='Manual_correction_genus_multiNCBI.txt', sep='\t', quote=FALSE, row.names=FALSE, col.names = TRUE)
+allIn_noNCBIid_recordORaccepted <- FULL_RECORD_DB %>% 
+  filter(is.na(identifier) & is.na(accepted_NCBI))
 
-Species_wNCBIid_multipleIdentifiers_clean <- read_delim("Manual_correction_species_multiNCBI_corrected.txt", col_types = "c", na = c("","NA"))
-Subspecies_wNCBIid_multipleIdentifiers_clean <- read_delim("Manual_correction_subspecies_multiNCBI_corrected.txt", col_types = "c", na = c("","NA"))
-Genus_wNCBIid_multipleIdentifiers_clean <- read_delim("Manual_correction_genus_multiNCBI_corrected.txt", col_types = "c", na = c("","NA"))
+unaccepted_AphiaID <- allIn_noNCBIid_recordORaccepted %>%
+  pull(unacceptedAphiaID) %>%
+  na.omit() %>%
+  str_split(";") %>%
+  unlist() %>%
+  trimws() %>%
+  unique() %>%
+  (\(x) x[x != ""])() %>%
+  as.data.frame() %>%
+  setNames("unaccepted_AphiaID")
 
-for (col in intersect(names(FULL_RECORD_DB), names(Species_wNCBIid_multipleIdentifiers_clean))) {
-  if (class(Species_wNCBIid_multipleIdentifiers_clean[[col]]) != class(FULL_RECORD_DB[[col]])) {
-    Species_wNCBIid_multipleIdentifiers_clean[[col]] <- as(
-      Species_wNCBIid_multipleIdentifiers_clean[[col]], 
-      class(FULL_RECORD_DB[[col]])
-    )
-  }
+unaccepted_AphiaID <- unaccepted_AphiaID %>% mutate(unaccepted_AphiaID = as.integer(unaccepted_AphiaID))
+unaccepted_WORMS <- wm_record_(id = unaccepted_AphiaID$unaccepted_AphiaID)
+unaccepted_WORMS_df <- dplyr::bind_rows(unaccepted_WORMS)
+unaccepted_WORMS_names <- toupper(unique(na.omit(unaccepted_WORMS_df$scientificname)))
+unaccepted_names <- unaccepted_WORMS_names[
+  !trimws(unaccepted_WORMS_names) %in% all_existing_names
+]
+
+max_entries <- 2000
+chunks <- create_chunks_with_controls(unaccepted_names, max_entries, positive_names)
+for (i in seq_along(chunks)) {
+  writeLines(chunks[[i]], paste0("07_oldNames_noNCBI_names_search_chunk_", i, ".txt"))
 }
-
-for (col in intersect(names(FULL_RECORD_DB), names(Subspecies_wNCBIid_multipleIdentifiers_clean))) {
-  if (class(Subspecies_wNCBIid_multipleIdentifiers_clean[[col]]) != class(FULL_RECORD_DB[[col]])) {
-    Subspecies_wNCBIid_multipleIdentifiers_clean[[col]] <- as(
-      Subspecies_wNCBIid_multipleIdentifiers_clean[[col]], 
-      class(FULL_RECORD_DB[[col]])
-    )
-  }
-}
-
-for (col in intersect(names(FULL_RECORD_DB), names(Genus_wNCBIid_multipleIdentifiers_clean))) {
-  if (class(Genus_wNCBIid_multipleIdentifiers_clean[[col]]) != class(FULL_RECORD_DB[[col]])) {
-    Genus_wNCBIid_multipleIdentifiers_clean[[col]] <- as(
-      Genus_wNCBIid_multipleIdentifiers_clean[[col]], 
-      class(FULL_RECORD_DB[[col]])
-    )
-  }
-}
-
-UPDATED_FULL_RECORD_DB <- rows_update(FULL_RECORD_DB, Species_wNCBIid_multipleIdentifiers_clean, by = "Scientific.Name")
-UPDATED_FULL_RECORD_DB <- rows_update(UPDATED_FULL_RECORD_DB, Subspecies_wNCBIid_multipleIdentifiers_clean, by = "Scientific.Name")
-UPDATED_FULL_RECORD_DB <- rows_update(UPDATED_FULL_RECORD_DB, Genus_wNCBIid_multipleIdentifiers_clean, by = "Scientific.Name")
-
-#IF NO CORRECTIONS:
-#UPDATED_FULL_RECORD_DB <- FULL_RECORD_DB
 ```
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -670,14 +785,15 @@ UPDATED_FULL_RECORD_DB <- rows_update(UPDATED_FULL_RECORD_DB, Genus_wNCBIid_mult
 # # 
 # # 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 ```{r}
 #Enter (cd) the home directory where the search files are stored and run the following.
-#for chunk_file in 0[124]_*; do taxa=$(cat "$chunk_file"); esearch -db taxonomy -query "$taxa" | efetch -format docsum | xtract -pattern DocumentSummary -def "-" -element TaxId AkaTaxId Status Rank ScientificName Genus Species ModificationDate > "NCBI_search/names/NCBI_taxonomy_${chunk_file}.txt"; sleep 10; done
+#for chunk_file in 0[1247]_*; do taxa=$(cat "$chunk_file"); esearch -db taxonomy -query "$taxa" | efetch -format docsum | xtract -pattern DocumentSummary -def "-" -element TaxId AkaTaxId Status Rank ScientificName Genus Species ModificationDate > "NCBI_search/names/NCBI_taxonomy_${chunk_file}.txt"; sleep 10; done
 ```
 
 #Check for positive control results in each chunk
 ```{r}
-chunk_files <- list.files("NCBI_search/names", pattern = "^NCBI_taxonomy_0[124]_.*chunk.*\\.txt$", full.names = TRUE)
+chunk_files <- list.files("NCBI_search/names", pattern = "^NCBI_taxonomy_0[1247]_.*chunk.*\\.txt$", full.names = TRUE)
 
 validate_chunk <- function(chunk_file, positive_control) {
   chunk_df <- read_delim(chunk_file, delim = "\t", col_names = c(
@@ -718,11 +834,12 @@ invisible(lapply(chunk_files, validate_chunk, positive_control = positive_contro
 
 ```
 
-#Concatenate results chunks and check success
+#Concatenate results chunks
 ```{r}
 system("cat NCBI_search/names/NCBI_taxonomy_01_noApiaID_names_search_chunk* > NCBI_search/names/NCBI_taxonomy_01_noApiaID_names_search_combined.txt")
 system("cat NCBI_search/names/NCBI_taxonomy_02_species_noNCBI_names_search_chunk* > NCBI_search/names/NCBI_taxonomy_02_species_noNCBI_names_search_combined.txt")
 system("cat NCBI_search/names/NCBI_taxonomy_04_subspecies_noNCBI_names_search_chunk* > NCBI_search/names/NCBI_taxonomy_04_subspecies_noNCBI_names_search_combined.txt")
+system("cat NCBI_search/names/NCBI_taxonomy_07_oldNames_noNCBI_names_search_chunk* > NCBI_search/names/NCBI_taxonomy_07_oldNames_noNCBI_names_search_combined.txt")
 
 ```
 
@@ -751,10 +868,77 @@ File04_taxonomy_names_search <- File04_taxonomy_names_search %>%
   group_by(Scientific.Name) %>%
   summarise(across(everything(), ~ paste(unique(.), collapse = ";"))) %>%
   ungroup()
+
+File07_taxonomy_names_search <- read_delim("NCBI_search/names/NCBI_taxonomy_07_oldNames_noNCBI_names_search_combined.txt", col_types = "c", na = c("","NA"), col_names = c("NCBITaxId", "NCBIAkaTaxId", "NCBIStatus", "NCBIRank", "Scientific.Name", "NCBIGenus", "NCBISpecies", "NCBIModificationDate"))
+File07_taxonomy_names_search <- File07_taxonomy_names_search %>%
+  mutate(Scientific.Name = str_to_upper(Scientific.Name))
+File07_taxonomy_names_search <- File07_taxonomy_names_search %>%
+  group_by(Scientific.Name) %>%
+  summarise(across(everything(), ~ paste(unique(.), collapse = ";"))) %>%
+  ungroup()
+
+UPDATED_FULL_RECORD_DB <- FULL_RECORD_DB
 ```
 
-#Reminder, don't continue with this as a chunk if early entries (lines 668-674) fail; might not be any data in the new name search
 ```{r}
+extract_binomials <- function(x) {
+
+  x <- str_to_upper(trimws(as.character(x)))
+  x <- x[!is.na(x) & x != "" & x != "-"]
+
+  components <- str_split(x, "\\s+[X×]\\s+")
+
+  unlist(lapply(components, function(parts) {
+    str_extract(
+      trimws(parts),
+      "^[[:alpha:]][[:alpha:]'-]*\\s+[[:alpha:]][[:alpha:]'-]*"
+    )
+  })) %>%
+    na.omit() %>%
+    trimws() %>%
+    unique()
+}
+
+has_non_control_results <- function(results_df) {
+
+  positive_binomials <- extract_binomials(
+    positive_control$Scientific.Name
+  )
+
+  returned_names <- str_to_upper(
+    trimws(as.character(results_df$Scientific.Name))
+  )
+
+  returned_names <- unique(
+    returned_names[!is.na(returned_names) &
+                     returned_names != "" &
+                     returned_names != "-"]
+  )
+
+  if (length(returned_names) == 0) {
+    return(FALSE)
+  }
+
+  # Split each name into its hybrid components
+  components <- str_split(returned_names, "\\s+[X×]\\s+")
+
+  # A name is control-related if ANY component matches a control binomial
+  is_control_related <- vapply(components, function(parts) {
+
+    binomials <- str_extract(
+      trimws(parts),
+      "^[[:alpha:]][[:alpha:]'-]*\\s+[[:alpha:]][[:alpha:]'-]*"
+    )
+
+    any(binomials %in% positive_binomials, na.rm = TRUE)
+
+  }, logical(1))
+
+  any(!is_control_related)
+}
+
+if (has_non_control_results(File01_taxonomy_names_search)) {
+
 #Require an exact species name match to link, collate multiple taxIDs
 File01_original <- bind_rows(scientific_name_table_NO_APHIAID, 
                               select(merge_scientificName_WORMSdb_stillNoWORMSRecord, 
@@ -789,10 +973,16 @@ File01_updated_wResults <- File01_updated_wResults %>%
 #Pull the new taxID information for non-AphiaID results into the UPDATED_FULL_RECORD_DB
 UPDATED_FULL_RECORD_DB <- bind_rows(UPDATED_FULL_RECORD_DB, File01_updated_wResults)
 
+} else {
+  message("Skipping File01: results contain only positive-control-related names.")
+}
+
+
 ```
 
-#Reminder, don't continue with this chunk if early entries (lines 676-682) fail; might not be any data in the new name search
 ```{r}
+if (has_non_control_results(File02_taxonomy_names_search)) {
+
 File02_original <- bind_rows(Species_noNCBIid_recordORacceptedORparent, Species_noNCBIid_recordORaccepted)
 File02_original <- File02_original %>%
   mutate(acceptedNameUsage_uc = str_to_upper(acceptedNameUsage))
@@ -830,10 +1020,15 @@ File02_updated_wResults <- File02_updated_wResults %>%
 
 UPDATED_FULL_RECORD_DB <- rows_update(UPDATED_FULL_RECORD_DB, File02_updated_wResults, by = "Scientific.Name")
 
+} else {
+  message("Skipping File02: results contain only positive-control-related names.")
+}
+
 ```
 
-#Reminder, don't continue with this chunk if early entries (lines 684-690) fail; might not be any data in the new name search
 ```{r}
+if (has_non_control_results(File04_taxonomy_names_search)) {
+
 File04_original <- bind_rows(Subspecies_noNCBIid_recordORacceptedORparent, Subspecies_noNCBIid_recordORaccepted)
 File04_original <- File04_original %>%
   mutate(acceptedNameUsage_uc = str_to_upper(acceptedNameUsage))
@@ -871,6 +1066,333 @@ File04_updated_wResults <- File04_updated_wResults %>%
 
 UPDATED_FULL_RECORD_DB <- rows_update(UPDATED_FULL_RECORD_DB, File04_updated_wResults, by = "Scientific.Name")
 
+} else {
+  message("Skipping File04: results contain only positive-control-related names.")
+}
+
+```
+
+```{r}
+if (has_non_control_results(File07_taxonomy_names_search)) {
+  
+  File07_original_map <- UPDATED_FULL_RECORD_DB %>%
+  mutate(.record_row = row_number()) %>%
+  filter(is.na(identifier), is.na(accepted_NCBI)) %>%
+  filter(!is.na(unacceptedAphiaID), unacceptedAphiaID != "") %>%
+  separate_rows(unacceptedAphiaID, sep = ";") %>%
+  mutate(unacceptedAphiaID = trimws(unacceptedAphiaID)) %>%
+  filter(unacceptedAphiaID != "")
+
+  File07_original_map <- File07_original_map %>%
+  left_join(
+    unaccepted_WORMS_df %>%
+      transmute(
+        unacceptedAphiaID = as.character(AphiaID),
+        unaccepted_WORMS_name = str_to_upper(trimws(scientificname))
+      ) %>%
+      distinct(),
+    by = "unacceptedAphiaID"
+  )
+  
+  File07_review_matches <- File07_original_map %>%
+  inner_join(
+    File07_taxonomy_names_search %>%
+      filter(!is.na(NCBITaxId), NCBITaxId != "-") %>%
+      select(
+        Scientific.Name,
+        NCBITaxId,
+        NCBIRank,
+        NCBIStatus
+      ),
+    by = c("unaccepted_WORMS_name" = "Scientific.Name")
+  ) %>%
+  select(
+    .record_row,
+    Scientific.Name,
+    acceptedNameUsage,
+    unacceptedAphiaID,
+    unaccepted_WORMS_name,
+    NCBITaxId,
+    NCBIRank,
+    NCBIStatus
+  ) %>%
+  distinct()
+  
+  if (nrow(File07_review_matches) > 0) {
+
+  warning(
+    paste0(
+      "File07: Found ",
+      nrow(File07_review_matches),
+      " potential NCBI matches to unaccepted WoRMS names. ",
+      "These require manual review; no records were updated."
+    ),
+    call. = FALSE
+  )
+
+  print(File07_review_matches)
+  write.table(File07_review_matches, file="export/list_unacceptedWoRMS_namesSearchNCBI.txt", sep='\t', quote=FALSE, row.names=TRUE, col.names = TRUE)
+
+} else {
+
+  message(
+    "File07: No NCBI matches found for the unaccepted WoRMS names."
+  )
+
+}
+
+#  TODO: When run on a larger dataset, come back to test manual import of approved rows.
+  
+} else {
+  message("Skipping File07: results contain only positive-control-related names.")
+}
+
+```
+
+```{r}
+multiple_NCBI_records <- UPDATED_FULL_RECORD_DB %>%
+  filter(
+    if_any(
+      c(identifier, accepted_NCBI, parent_NCBI),
+      ~ str_detect(coalesce(as.character(.x), ""), ";")
+    )
+  )
+
+if (nrow(multiple_NCBI_records) > 0) {
+unique_NCBI_taxIDs <- multiple_NCBI_records %>%
+  select(identifier, accepted_NCBI, parent_NCBI) %>%
+  pivot_longer(
+    cols = everything(),
+    values_to = "taxID"
+  ) %>%
+  filter(!is.na(taxID), taxID != "") %>%
+  separate_rows(taxID, sep = ";") %>%
+  mutate(
+    taxID = str_remove(taxID, "^NCBI:txid")
+  ) %>%
+  filter(taxID != "", !is.na(taxID)) %>%
+  distinct(taxID) %>%
+  arrange(as.numeric(taxID))
+
+rank_cols_all <- c(
+  "domain", "phylum", "class", "order",
+  "family", "genus", "species"
+)
+
+ncbi_taxonomy <- taxonomizr::getTaxonomy(
+  ids = unique_NCBI_taxIDs$taxID,
+  sqlFile = taxa_outfile_ncbi,
+  desiredTaxa = rank_cols_all
+) %>%
+  as.data.frame() %>%
+  tibble::as_tibble() %>%
+  mutate(
+    taxID = as.character(unique_NCBI_taxIDs$taxID),
+    .before = 1
+  )
+
+rank_cols <- c(
+  "phylum", "class", "order",
+  "family", "genus", "species"
+)
+
+ref_cols <- paste0("ref_", rank_cols)
+
+id_cols <- c("identifier", "accepted_NCBI", "parent_NCBI")
+
+reference_taxonomy <- multiple_NCBI_records %>%
+  mutate(
+    .record_id = row_number(),
+    ref_species = specificEpithet
+  ) %>%
+  select(
+    .record_id,
+    all_of(id_cols),
+    ref_kingdom = kingdom,
+    ref_phylum = phylum,
+    ref_class = class,
+    ref_order = order,
+    ref_family = family,
+    ref_genus = genus,
+    ref_species
+  )
+
+ncbi_candidates <- reference_taxonomy %>%
+  pivot_longer(
+    cols = all_of(id_cols),
+    names_to = "id_field",
+    values_to = "candidate"
+  ) %>%
+  filter(!is.na(candidate), candidate != "") %>%
+  separate_rows(candidate, sep = ";") %>%
+  mutate(
+    taxID = str_remove(str_trim(candidate), "^NCBI:txid")
+  ) %>%
+  filter(taxID != "") %>%
+  distinct(.record_id, id_field, taxID, .keep_all = TRUE) %>%
+  select(-candidate) %>%
+  left_join(
+    ncbi_taxonomy %>%
+      mutate(taxID = as.character(taxID)) %>%
+      # Compare the second word of the NCBI binomial
+      mutate(species = word(species, 2)),
+    by = "taxID"
+  )
+
+# Score each candidate against the seven reference ranks
+ncbi_candidates <- ncbi_candidates %>%
+  rowwise() %>%
+  mutate(
+    ranks_compared = {
+      ref_values <- as.character(c_across(all_of(ref_cols)))
+      ncbi_values <- as.character(c_across(all_of(rank_cols)))
+
+      ref_present <- !is.na(ref_values) & trimws(ref_values) != ""
+
+      # Position of the deepest populated reference rank
+      deepest_rank <- if (any(ref_present)) {
+        max(which(ref_present))
+      } else {
+        0L
+      }
+
+      # Direct and accepted IDs: compare all populated reference ranks.
+      # Parent IDs: compare only ranks above the deepest reference rank.
+      eligible <- ref_present
+
+      if (id_field == "parent_NCBI") {
+        eligible <- eligible &
+          (seq_along(rank_cols) < deepest_rank)
+      }
+
+      sum(
+        eligible &
+          !is.na(ncbi_values) &
+          trimws(ncbi_values) != ""
+      )
+    },
+
+    ranks_matched = {
+      ref_values <- as.character(c_across(all_of(ref_cols)))
+      ncbi_values <- as.character(c_across(all_of(rank_cols)))
+
+      ref_present <- !is.na(ref_values) & trimws(ref_values) != ""
+
+      deepest_rank <- if (any(ref_present)) {
+        max(which(ref_present))
+      } else {
+        0L
+      }
+
+      eligible <- ref_present
+
+      if (id_field == "parent_NCBI") {
+        eligible <- eligible &
+          (seq_along(rank_cols) < deepest_rank)
+      }
+
+      ncbi_present <- !is.na(ncbi_values) & trimws(ncbi_values) != ""
+
+      sum(
+        eligible &
+          ncbi_present &
+          str_to_lower(trimws(ref_values)) ==
+          str_to_lower(trimws(ncbi_values))
+      )
+    },
+
+    percent_matched = if_else(
+      ranks_compared > 0,
+      100 * ranks_matched / ranks_compared,
+      NA_real_
+    )
+  ) %>%
+  ungroup()
+
+ncbi_candidates <- ncbi_candidates %>%
+  filter(!is.na(percent_matched), percent_matched > 60) %>%
+  group_by(.record_id, id_field) %>%
+  arrange(
+    desc(percent_matched),
+    desc(ranks_matched),
+    taxID,
+    .by_group = TRUE
+  ) %>%
+  slice_head(n = 1) %>%
+  ungroup()
+
+best_NCBI_hits_wide <- ncbi_candidates %>%
+  group_by(.record_id, id_field) %>%
+  summarise(
+    taxID = paste0(
+      "NCBI:txid",
+      paste(unique(taxID), collapse = ";NCBI:txid")
+    ),
+    .groups = "drop"
+  ) %>%
+  pivot_wider(
+    names_from = id_field,
+    values_from = taxID
+  )
+
+multiple_NCBI_records <- multiple_NCBI_records %>%
+  mutate(.record_id = row_number()) %>%
+  left_join(best_NCBI_hits_wide, by = ".record_id", suffix = c("", "_best")) %>%
+  mutate(
+    identifier = coalesce(identifier_best, identifier),
+    accepted_NCBI = coalesce(accepted_NCBI_best, accepted_NCBI),
+    parent_NCBI = coalesce(parent_NCBI_best, parent_NCBI)
+  ) %>%
+  select(-.record_id, -identifier_best, -accepted_NCBI_best, -parent_NCBI_best)
+
+UPDATED_FULL_RECORD_DB <- rows_update(UPDATED_FULL_RECORD_DB, multiple_NCBI_records, by = "Scientific.Name")
+} else {
+  message("No multi NCBI taxIDs found.")
+}
+```
+
+```{r}
+multiple_NCBI_records <- UPDATED_FULL_RECORD_DB %>%
+  filter(
+    if_any(
+      c(identifier, accepted_NCBI, parent_NCBI),
+      ~ str_detect(coalesce(as.character(.x), ""), ";")
+    )
+  )
+
+if (nrow(multiple_NCBI_records) > 0) {
+  message("Multi NCBI taxID records persist. Please run the next manual section.")
+  write.table(multiple_NCBI_records, file='Manual_correction_multiNCBI.txt', sep='\t', quote=FALSE, row.names=FALSE, col.names = TRUE)
+} else {
+  message("No multi NCBI taxID records persist. Skip next section.")
+}
+  
+```
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # 
+# # 
+# # 
+# # MANUAL: MANUAL correction section (correct "Manual_correction_multiNCBI.txt", rename "Manual_correction_multiNCBI_corrected.txt")
+# # WARNING: ONLY run this section after correcting if the previous section has message asking you to.
+# # 
+# # 
+# # 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+```{r}
+all_wNCBIid_multipleIdentifiers_clean <- read_delim("Manual_correction_multiNCBI_corrected.txt", col_types = "c", na = c("","NA"))
+
+for (col in intersect(names(UPDATED_FULL_RECORD_DB), names(all_wNCBIid_multipleIdentifiers_clean))) {
+  if (class(all_wNCBIid_multipleIdentifiers_clean[[col]]) != class(UPDATED_FULL_RECORD_DB[[col]])) {
+    all_wNCBIid_multipleIdentifiers_clean[[col]] <- as(
+      all_wNCBIid_multipleIdentifiers_clean[[col]], 
+      class(UPDATED_FULL_RECORD_DB[[col]])
+    )
+  }
+}
+
+UPDATED_FULL_RECORD_DB <- rows_update(UPDATED_FULL_RECORD_DB, all_wNCBIid_multipleIdentifiers_clean, by = "Scientific.Name")
+
 ```
 
 #Save TaxID search lists
@@ -882,6 +1404,7 @@ Genus_records <- UPDATED_FULL_RECORD_DB %>% filter(taxonRank %in% c("Genus", "Su
 remaining_records <- UPDATED_FULL_RECORD_DB %>% filter(!taxonRank %in% c("Genus", "Subgenus", "Species", "Subspecies", "Forma", "Variety"))
 taxonRank_summary <- remaining_records %>%
   count(taxonRank, name = "row_count")
+message("Remaining taxa ranks not included in search:")
 print(taxonRank_summary)
 
 #Species_records
@@ -1010,7 +1533,7 @@ system(glue::glue("{subtree_path} descendants {nodes_dmp_path} {identifier_input
 system(glue::glue("{subtree_path} descendants {nodes_dmp_path} {accepted_input_file} > {accepted_output_file}"))
 
 identifier_subtree_import <- read_delim(identifier_output_file, col_types = cols(.default = col_character()), na = c("","NA"), col_names = FALSE)
-identifier_subtree_import <- identifier_subtree_import %>% rename(query = X1, subtree_result = X2)
+identifier_subtree_import <- identifier_subtree_import %>% dplyr::rename(query = X1, subtree_result = X2)
 identifier_subtree_import$query <- gsub("^", "NCBI:txid", identifier_subtree_import$query)
 identifier_subtree_import$subtree_result <- gsub("^", "NCBI:txid", identifier_subtree_import$subtree_result)
 collapsed_identifier_subtree <- identifier_subtree_import %>%
@@ -1021,7 +1544,7 @@ collapsed_identifier_subtree <- identifier_subtree_import %>%
   )
 
 accepted_subtree_import <- read_delim(accepted_output_file, col_types = cols(.default = col_character()), na = c("","NA"), col_names = FALSE)
-accepted_subtree_import <- accepted_subtree_import %>% rename(query = X1, subtree_result = X2)
+accepted_subtree_import <- accepted_subtree_import %>% dplyr::rename(query = X1, subtree_result = X2)
 accepted_subtree_import$query <- gsub("^", "NCBI:txid", accepted_subtree_import$query)
 accepted_subtree_import$subtree_result <- gsub("^", "NCBI:txid", accepted_subtree_import$subtree_result)
 collapsed_accepted_subtree <- accepted_subtree_import %>%
@@ -1077,9 +1600,9 @@ UPDATED_FULL_RECORD_DB_backup <- UPDATED_FULL_RECORD_DB
 #Enter (cd) the home directory where the search files are stored and run the following.
 
 #NCBI Mitochondrial search
-#for chunk_file in 0[356]_*; do taxa=$(cat "$chunk_file"); esearch -db nucleotide -query "$taxa AND mitochondrion[filter] AND 3000:5000000[SLEN]" | efetch -format docsum | xtract -pattern DocumentSummary -def "-" -element AccessionVersion Title CreateDate Organism TaxId MolType Genome Completeness Topology Slen SubType SubName > "NCBI_search/taxIDs/NCBI_output_mito_${chunk_file}.txt"; sleep 10; done
+#for chunk_file in 0[356]_*; do taxa=$(cat "$chunk_file"); esearch -db nucleotide -query "$taxa AND mitochondrion[filter] AND 3000:5000000[SLEN]" | efetch -format docsum | xtract -pattern DocumentSummary -def "-" -element AccessionVersion Title CreateDate Organism TaxId MolType Genome Completeness Topology Slen SubType SubName BioSample > "NCBI_search/taxIDs/NCBI_output_mito_${chunk_file}.txt"; sleep 10; done
 
-#NCBI SRA search
+#NCBI SRA search - skip if skip_SRA is TRUE
 #for chunk_file in 0[356]_*; do taxa=$(cat "$chunk_file"); esearch -db sra -query "$taxa" | efetch -format runinfo > "NCBI_search/taxIDs/NCBI_output_sra_${chunk_file}.txt"; sleep 10; done
 ```
 
@@ -1091,7 +1614,7 @@ chunk_files <- list.files("NCBI_search/taxIDs", pattern = "^NCBI_output_mito_0[3
 validate_chunk_mito <- function(chunk_file, positive_control) {
   chunk_df <- read_delim(chunk_file, delim = "\t", col_names = c(
     "AccessionVersion", "Title", "CreateDate", "Organism", "TaxId", "MolType", "Genome",
-    "Completeness", "Topology", "Slen", "SubType", "SubName"
+    "Completeness", "Topology", "Slen", "SubType", "SubName", "BioSample"
   ), show_col_types = FALSE)
   
   specific_NCBI_cols <- c("TaxId")
@@ -1119,6 +1642,8 @@ invisible(lapply(chunk_files, validate_chunk_mito, positive_control = positive_c
 
 #Check for positive control results in each chunk: SRA
 ```{r}
+if(!skip_SRA) {
+
 chunk_files <- list.files("NCBI_search/taxIDs", pattern = "^NCBI_output_sra_0[356]_.*chunk.*\\.txt$", full.names = TRUE)
 
 validate_chunk_sra <- function(chunk_file, positive_control) {
@@ -1145,6 +1670,7 @@ validate_chunk_sra <- function(chunk_file, positive_control) {
 
 invisible(lapply(chunk_files, validate_chunk_sra, positive_control = positive_control))
 
+}
 ```
 
 #Concatenate results chunks
@@ -1153,25 +1679,28 @@ system("cat NCBI_search/taxIDs/NCBI_output_mito_03_species_singleNCBI_taxID_sear
 system("cat NCBI_search/taxIDs/NCBI_output_mito_05_subspecies_singleNCBI_taxID_search_chunk_* > NCBI_search/taxIDs/NCBI_output_mito_05_subspecies_singleNCBI_taxID_search_combined.txt")
 system("cat NCBI_search/taxIDs/NCBI_output_mito_06_genus_singleNCBI_taxID_search_chunk_* > NCBI_search/taxIDs/NCBI_output_mito_06_genus_singleNCBI_taxID_search_combined.txt")
 
+if(!skip_SRA) {
 system("cat NCBI_search/taxIDs/NCBI_output_sra_03_species_singleNCBI_taxID_search_chunk_* > NCBI_search/taxIDs/NCBI_output_sra_03_species_singleNCBI_taxID_search_combined.txt")
 system("cat NCBI_search/taxIDs/NCBI_output_sra_05_subspecies_singleNCBI_taxID_search_chunk_* > NCBI_search/taxIDs/NCBI_output_sra_05_subspecies_singleNCBI_taxID_search_combined.txt")
 system("cat NCBI_search/taxIDs/NCBI_output_sra_06_genus_singleNCBI_taxID_search_chunk_* > NCBI_search/taxIDs/NCBI_output_sra_06_genus_singleNCBI_taxID_search_combined.txt")
+}
 ```
 
 # Import NCBI mitochondrial and WGS results
 ```{r}
-File03_taxid_search <- read_delim("NCBI_search/taxIDs/NCBI_output_mito_03_species_singleNCBI_taxID_search_combined.txt", col_types = "c", na = c("","NA"), col_names = c("AccessionVersion", "Title", "CreateDate", "Organism", "TaxId", "MolType", "Genome", "Completeness", "Topology", "Slen", "SubType", "SubName"))
+File03_taxid_search <- read_delim("NCBI_search/taxIDs/NCBI_output_mito_03_species_singleNCBI_taxID_search_combined.txt", delim = "\t", col_types = "c", na = c("","NA"), col_names = c("AccessionVersion", "Title", "CreateDate", "Organism", "TaxId", "MolType", "Genome", "Completeness", "Topology", "Slen", "SubType", "SubName", "BioSample"))
 
+File05_taxid_search <- read_delim("NCBI_search/taxIDs/NCBI_output_mito_05_subspecies_singleNCBI_taxID_search_combined.txt", delim = "\t", col_types = "c", na = c("","NA"), col_names = c("AccessionVersion", "Title", "CreateDate", "Organism", "TaxId", "MolType", "Genome", "Completeness", "Topology", "Slen", "SubType", "SubName", "BioSample"))
+
+File06_taxid_search <- read_delim("NCBI_search/taxIDs/NCBI_output_mito_06_genus_singleNCBI_taxID_search_combined.txt", delim = "\t", col_types = "c", na = c("","NA"), col_names = c("AccessionVersion", "Title", "CreateDate", "Organism", "TaxId", "MolType", "Genome", "Completeness", "Topology", "Slen", "SubType", "SubName", "BioSample"))
+
+if(!skip_SRA) {
 File03_sra_search <- read_csv("NCBI_search/taxIDs/NCBI_output_sra_03_species_singleNCBI_taxID_search_combined.txt", col_types = cols(.default = col_character()), na = c("","NA"), col_names = TRUE)
-
-File05_taxid_search <- read_delim("NCBI_search/taxIDs/NCBI_output_mito_05_subspecies_singleNCBI_taxID_search_combined.txt", col_types = "c", na = c("","NA"), col_names = c("AccessionVersion", "Title", "CreateDate", "Organism", "TaxId", "MolType", "Genome", "Completeness", "Topology", "Slen", "SubType", "SubName"))
 
 File05_sra_search <- read_csv("NCBI_search/taxIDs/NCBI_output_sra_05_subspecies_singleNCBI_taxID_search_combined.txt", col_types = cols(.default = col_character()), na = c("","NA"), col_names = TRUE)
 
-File06_taxid_search <- read_delim("NCBI_search/taxIDs/NCBI_output_mito_06_genus_singleNCBI_taxID_search_combined.txt", col_types = "c", na = c("","NA"), col_names = c("AccessionVersion", "Title", "CreateDate", "Organism", "TaxId", "MolType", "Genome", "Completeness", "Topology", "Slen", "SubType", "SubName"))
-
 File06_sra_search <- read_csv("NCBI_search/taxIDs/NCBI_output_sra_06_genus_singleNCBI_taxID_search_combined.txt", col_types = cols(.default = col_character()), na = c("","NA"), col_names = TRUE)
-
+}
 ```
 
 # Assign Mitochondrial confidence
@@ -1231,12 +1760,14 @@ for (col in new_columns) {
   }
 }
 
+if(!skip_SRA) {
 sra_new_columns <- c("high_potential_sra_directHits", "high_potential_sra_subTreeHits", "other_potential_sra_directHits", "other_potential_sra_subTreeHits")
 
 for (col in sra_new_columns) {
   if (!col %in% colnames(UPDATED_FULL_RECORD_DB)) {
     UPDATED_FULL_RECORD_DB[[col]] <- NA_character_
   }
+}
 }
 
 # Helper function for matching and summarizing
@@ -1370,6 +1901,7 @@ UPDATED_FULL_RECORD_DB <- UPDATED_FULL_RECORD_DB %>%
 
 # Assign SRA confidence
 ```{r}
+if(!skip_SRA) {
 # Function to classify sra confidence
 classify_sra_confidence <- function(strategy, source, selection, bases) {
   strategy <- tolower(strategy)
@@ -1448,12 +1980,12 @@ File06_sra_search <- File06_sra_search %>%
     )
   ) %>%
   ungroup()
-
+}
 ```
 
 # Merge SRA records results
 ```{r}
-
+if(!skip_SRA) {
 summarize_sra_hits <- function(identifier, accepted_NCBI, subtree_identifier_taxIDs, subtree_accepted_taxIDs, sra_data) {
   direct_hits <- sra_data %>%
     filter(!is.na(TaxID) & TaxID %in% na.omit(c(identifier, accepted_NCBI)))
@@ -1576,11 +2108,13 @@ UPDATED_FULL_RECORD_DB <- UPDATED_FULL_RECORD_DB %>%
   mutate(across(ends_with("_sra_directHits"), ~ coalesce(get(paste0(cur_column(), "_new")), .))) %>%
   mutate(across(ends_with("_sra_subTreeHits"), ~ coalesce(get(paste0(cur_column(), "_new")), .))) %>%
   select(-ends_with("_new"))
-    
+}
 ```
 
 #Flatten the subtree taxIDs (return to normal)
 ```{r}
+UPDATED_FULL_RECORD_DB_NOTFLAT <- UPDATED_FULL_RECORD_DB
+
 UPDATED_FULL_RECORD_DB <- UPDATED_FULL_RECORD_DB %>%
   mutate(
     subtree_identifier_taxIDs = sapply(subtree_identifier_taxIDs, function(x) paste(x, collapse = ";")),
@@ -1592,14 +2126,12 @@ UPDATED_FULL_RECORD_DB_newbackup <- UPDATED_FULL_RECORD_DB
 
 #Pull in NCBI taxonomy from direct hits for identifier and accepted_NCBI
 ```{r}
-prepareDatabase(taxa_outfile_ncbi)
-
 UPDATED_FULL_RECORD_DB <- UPDATED_FULL_RECORD_DB %>%
   mutate(clean_identifier = str_remove(identifier, "NCBI:txid")) %>%
   mutate(taxonomy = getTaxonomy(clean_identifier, taxa_outfile_ncbi) %>%
   as_tibble()) %>%
   unnest_wider(taxonomy, names_sep = "_NCBI_") %>%
-  rename(NCBI_identifier_kingdom = taxonomy_NCBI_superkingdom,
+  dplyr::rename(NCBI_identifier_kingdom = taxonomy_NCBI_domain,
          NCBI_identifier_phylum = taxonomy_NCBI_phylum,
          NCBI_identifier_class = taxonomy_NCBI_class,
          NCBI_identifier_order = taxonomy_NCBI_order,
@@ -1613,7 +2145,7 @@ UPDATED_FULL_RECORD_DB <- UPDATED_FULL_RECORD_DB %>%
   mutate(taxonomy = getTaxonomy(clean_identifier, taxa_outfile_ncbi) %>%
   as_tibble()) %>%
   unnest_wider(taxonomy, names_sep = "_NCBI_") %>%
-  rename(NCBI_accepted_kingdom = taxonomy_NCBI_superkingdom,
+  dplyr::rename(NCBI_accepted_kingdom = taxonomy_NCBI_domain,
          NCBI_accepted_phylum = taxonomy_NCBI_phylum,
          NCBI_accepted_class = taxonomy_NCBI_class,
          NCBI_accepted_order = taxonomy_NCBI_order,
@@ -1622,11 +2154,170 @@ UPDATED_FULL_RECORD_DB <- UPDATED_FULL_RECORD_DB %>%
          NCBI_accepted_species = taxonomy_NCBI_species) %>%
   select(-clean_identifier)
 
+#Check final NCBI taxID assignments against WoRMS assignments
+NCBI_taxa_rows = c("NCBI_identifier_kingdom",	"NCBI_identifier_phylum",	"NCBI_identifier_class", "NCBI_identifier_order",	"NCBI_identifier_family",	"NCBI_identifier_genus",	"NCBI_identifier_species",	"NCBI_accepted_kingdom",	"NCBI_accepted_phylum",	"NCBI_accepted_class",	"NCBI_accepted_order",	"NCBI_accepted_family",	"NCBI_accepted_genus",	"NCBI_accepted_species")
+
+compare_taxonomy <- UPDATED_FULL_RECORD_DB %>%
+  mutate(
+    .record_id = row_number(),
+  ) %>%
+  select(
+    .record_id,
+    ref_kingdom = kingdom,
+    ref_phylum = phylum,
+    ref_class = class,
+    ref_order = order,
+    ref_family = family,
+    ref_genus = genus,
+    ref_species = specificEpithet,
+    ref_acceptedName = acceptedNameUsage,
+    ref_scientificName = scientificName,
+    all_of(NCBI_taxa_rows)
+  ) %>%
+  mutate(
+    NCBI_identifier_species = word(NCBI_identifier_species, 2),
+    NCBI_accepted_species = word(NCBI_accepted_species, 2),
+  )
+
+# Score each candidate against the six reference ranks
+identifier_cols <- paste0("NCBI_identifier_", rank_cols)
+accepted_cols   <- paste0("NCBI_accepted_", rank_cols)
+
+
+# Score identifier and accepted NCBI taxonomy independently
+compare_taxonomy <- compare_taxonomy %>%
+  rowwise() %>%
+  mutate(
+    # -----------------------------------------
+    # NCBI identifier taxonomy
+    # -----------------------------------------
+    identifier_ranks_compared = {
+      ref_values <- as.character(c_across(all_of(ref_cols)))
+      ncbi_values <- as.character(c_across(all_of(identifier_cols)))
+
+      ref_present <- !is.na(ref_values) & trimws(ref_values) != ""
+      ncbi_present <- !is.na(ncbi_values) & trimws(ncbi_values) != ""
+
+      sum(ref_present & ncbi_present)
+    },
+
+    identifier_ranks_matched = {
+      ref_values <- as.character(c_across(all_of(ref_cols)))
+      ncbi_values <- as.character(c_across(all_of(identifier_cols)))
+
+      ref_present <- !is.na(ref_values) & trimws(ref_values) != ""
+      ncbi_present <- !is.na(ncbi_values) & trimws(ncbi_values) != ""
+
+      sum(
+        ref_present &
+          ncbi_present &
+          str_to_lower(trimws(ref_values)) ==
+          str_to_lower(trimws(ncbi_values))
+      )
+    },
+
+    identifier_percent_matched = if_else(
+      identifier_ranks_compared > 0,
+      100 * identifier_ranks_matched / identifier_ranks_compared,
+      NA_real_
+    ),
+
+    # -----------------------------------------
+    # NCBI accepted taxonomy
+    # -----------------------------------------
+    accepted_ranks_compared = {
+      ref_values <- as.character(c_across(all_of(ref_cols)))
+      ncbi_values <- as.character(c_across(all_of(accepted_cols)))
+
+      ref_present <- !is.na(ref_values) & trimws(ref_values) != ""
+      ncbi_present <- !is.na(ncbi_values) & trimws(ncbi_values) != ""
+
+      sum(ref_present & ncbi_present)
+    },
+
+    accepted_ranks_matched = {
+      ref_values <- as.character(c_across(all_of(ref_cols)))
+      ncbi_values <- as.character(c_across(all_of(accepted_cols)))
+
+      ref_present <- !is.na(ref_values) & trimws(ref_values) != ""
+      ncbi_present <- !is.na(ncbi_values) & trimws(ncbi_values) != ""
+
+      sum(
+        ref_present &
+          ncbi_present &
+          str_to_lower(trimws(ref_values)) ==
+          str_to_lower(trimws(ncbi_values))
+      )
+    },
+
+    accepted_percent_matched = if_else(
+      accepted_ranks_compared > 0,
+      100 * accepted_ranks_matched / accepted_ranks_compared,
+      NA_real_
+    )
+  ) %>%
+  ungroup()
+
+# Identify records with questionable NCBI taxonomy matches
+iffy_NCBI_links <- compare_taxonomy %>%
+  filter(
+    if_any(
+      all_of(ref_cols),
+      ~ !is.na(.x) & trimws(as.character(.x)) != ""
+    ),
+    ( !is.na(identifier_percent_matched) &
+        identifier_percent_matched < 70
+    ) |
+    ( !is.na(accepted_percent_matched) &
+        accepted_percent_matched < 70
+    )
+  ) %>%
+  mutate(
+    iffy_identifier = !is.na(identifier_percent_matched) &
+      identifier_percent_matched < 70,
+    iffy_accepted = !is.na(accepted_percent_matched) &
+      accepted_percent_matched < 70
+  ) %>%
+  arrange(
+    pmin(
+      coalesce(identifier_percent_matched, Inf),
+      coalesce(accepted_percent_matched, Inf)
+    ),
+    .record_id
+  )
+
+# Pull the full original records, including both match scores
+iffy_NCBI_records <- UPDATED_FULL_RECORD_DB %>%
+  mutate(.record_id = row_number()) %>%
+  semi_join(
+    iffy_NCBI_links %>% distinct(.record_id),
+    by = ".record_id"
+  ) %>%
+  left_join(
+    iffy_NCBI_links %>%
+      select(
+        .record_id,
+        identifier_ranks_compared,
+        identifier_ranks_matched,
+        identifier_percent_matched,
+        accepted_ranks_compared,
+        accepted_ranks_matched,
+        accepted_percent_matched,
+        iffy_identifier,
+        iffy_accepted
+      ),
+    by = ".record_id"
+  ) %>%
+  select(-.record_id)
+
+if (nrow(iffy_NCBI_records) > 0) {
+  message("Some NCBI/WoRMS taxonomies with <70% matches. Check questionable_NCBI2WoRMS_records_for_inspection.txt to follow up.")
+  
+  write.table(iffy_NCBI_records, file = "export/questionable_NCBI2WoRMS_records_for_inspection.txt", sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE, na = "NA")
+  
+} 
+
 ```
-
-
-#TODO: Check why no aphiaID is set taxonrank to species
-
 
 #Local BOLD Searching
 ```{r}
@@ -1635,41 +2326,367 @@ vector_names <- UPDATED_FULL_RECORD_DB %>%
   mutate(across(everything(), toupper)) %>%
   unlist(use.names = FALSE) %>%
   unique() %>%
+  str_trim() %>%
   na.omit()
 
-search_terms <- c("bold_recordset_code_arr", vector_names)
-writeLines(search_terms, "BOLD_search_patterns.txt")
+writeLines(vector_names, "BOLD_search_patterns.txt")
+bold_output_file <- "BOLD_line_matches.tsv"
 
-system(paste0('grep -iF -f BOLD_search_patterns.txt ',BOLD_local,' > BOLD_line_matches.txt'))
+header <- read_tsv(
+  BOLD_local,
+  n_max = 0,
+  show_col_types = FALSE,
+  name_repair = "minimal"
+)
 
-setwd(exportdir)
-input_list_merge_records <- read.delim("export/FINAL_merge_records.txt", header=TRUE, stringsAsFactors=FALSE, na = c("","NA"))
-UPDATED_FULL_RECORD_DB <- read.delim("export/scientificNameTable_FINAL_CompleteDatabase.txt", header=TRUE, stringsAsFactors=FALSE, na = c("","NA"))
+identification_col <- which(
+  names(header) == "identification"
+)
+
+if (length(identification_col) != 1) {
+  stop("Expected exactly one column named 'identification'.")
+}
+
+awk_script <- tempfile(fileext = ".awk")
+
+writeLines(c(
+  'BEGIN {',
+  '  FS = OFS = "\\t"',
+  '  while ((getline p < patterns_file) > 0) {',
+  '    wanted[p] = 1',
+  '  }',
+  '  close(patterns_file)',
+  '}',
+  'NR == 1 { print; next }',
+  sprintf(
+    '{ value = toupper($%d);',
+    identification_col
+  ),
+  '  gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)',
+  '  if (value in wanted) print',
+  '}'
+), awk_script)
+
+# Execute the streaming search
+cmd <- paste(
+  "LC_ALL=C awk",
+  "-v", paste0("patterns_file=", shQuote("BOLD_search_patterns.txt")),
+  "-f", shQuote(awk_script),
+  shQuote(BOLD_local),
+  ">", shQuote(bold_output_file)
+)
+
+status <- system(cmd)
+
+if (status != 0) {
+  stop("Search failed; check the awk command and input files.")
+}
+
+BOLD_select_db_import <- fread(
+  "BOLD_line_matches.tsv",
+  colClasses = "character",
+  na.strings = c("", "NA"),
+  data.table = FALSE,
+  check.names = FALSE
+)
+
+#Merge back with information from DB
+name_fields <- c(
+  "Scientific.Name",
+  "scientificName",
+  "acceptedNameUsage",
+  "speciesNOsubgenus"
+)
+
+bold_taxonomy_fields <- c(
+  "kingdom", "phylum", "class", "order", "family",
+  "subfamily", "tribe", "genus", "species", "subspecies"
+)
+
+collapse_values <- function(x, unique_values = FALSE) {
+  x <- as.character(x)
+  x <- str_trim(x)
+
+  x <- x[!is.na(x) & x != ""]
+
+  if (length(x) == 0 ||
+      all(str_to_lower(x) %in% c("none", "unrecoverable"))) {
+    return(NA_character_)
+  }
+
+  # Remove placeholder entries when valid values are also present
+  x <- x[!str_to_lower(x) %in% c("none", "unrecoverable")]
+
+  if (unique_values) {
+    x <- x[!duplicated(x)]
+  }
+
+  if (length(x) == 0) NA_character_
+  else paste(x, collapse = ";")
+}
+
+collapse_taxonomy <- function(x) {
+  x <- as.character(x)
+  x <- str_trim(x)
+  x <- x[!is.na(x) & x != ""]
+
+  if (length(x) == 0 ||
+      all(str_to_lower(x) %in% c("none", "unrecoverable"))) {
+    return(NA_character_)
+  }
+
+  x <- x[!str_to_lower(x) %in% c("none", "unrecoverable")]
+
+  if (length(unique(x)) == 1) x[1]
+  else paste(x, collapse = ";")
+}
+
+normalize_name <- function(x) {
+  str_to_upper(str_trim(as.character(x)))
+}
+
+#Create name lookup
+master_db <- UPDATED_FULL_RECORD_DB %>%
+  mutate(.master_row = row_number())
+
+name_lookup <- master_db %>%
+  select(.master_row, all_of(name_fields)) %>%
+  pivot_longer(
+    cols = all_of(name_fields),
+    names_to = "matched_name_field",
+    values_to = "match_name"
+  ) %>%
+  mutate(match_name = normalize_name(match_name)) %>%
+  filter(!is.na(match_name), match_name != "") %>%
+  distinct(.master_row, match_name)
+
+#Match BOLD records
+bold_db <- BOLD_select_db_import %>%
+  mutate(
+    .bold_row = row_number(),
+    match_name = normalize_name(identification)
+  ) %>%
+  filter(!is.na(match_name), match_name != "")
+
+bold_matches <- name_lookup %>%
+  inner_join(
+    bold_db,
+    by = "match_name"
+  ) %>%
+ distinct(.master_row, .bold_row, .keep_all = TRUE)
+
+#Aggregate BOLD information per master record
+bold_summary <- bold_matches %>%
+  group_by(.master_row) %>%
+  summarise(
+    # Unique values, preserving first occurrence
+    bold_bin_uri = collapse_values(bin_uri, TRUE),
+    bold_taxid = collapse_values(taxid, TRUE),
+    bold_identification = collapse_values(identification, TRUE),
+    bold_geoid = collapse_values(geoid, TRUE),
+    bold_country_ocean = collapse_values(`country/ocean`, TRUE),
+
+    # Taxonomy: retain order and duplicates when values differ
+    across(
+      all_of(bold_taxonomy_fields),
+      collapse_taxonomy,
+      .names = "bold_{.col}"
+    ),
+
+    # Coordinates: retain all entries, including duplicates
+    bold_coord = collapse_values(coord),
+
+    # Record ID and nucleotide pairs
+    bold_record_nuc = {
+  rid <- str_trim(as.character(record_id))
+  nuc_val <- str_trim(as.character(nuc))
+
+  valid <- !is.na(rid) & !is.na(nuc_val) &
+    rid != "" & nuc_val != "" &
+    !(str_to_lower(rid) == "none" &
+      str_to_lower(nuc_val) == "none")
+
+  pairs <- paste(rid[valid], nuc_val[valid], sep = "___")
+
+  if (length(pairs) == 0) NA_character_
+  else paste(pairs, collapse = ";")
+},
+
+    # Unique marker codes
+    bold_marker_code = collapse_values(marker_code, TRUE),
+
+    # Count BOLD records per marker, formatted count___marker
+    bold_marker_counts = {
+  marker_counts <- tibble(
+    marker = str_trim(as.character(marker_code))
+  ) %>%
+    mutate(
+      marker = if_else(
+        is.na(marker) |
+          str_to_lower(marker) %in% c("none", "unrecoverable"),
+        NA_character_,
+        marker
+      ),
+      marker_key = coalesce(marker, "NA")
+    ) %>%
+    count(marker_key, name = "n")
+
+  if (nrow(marker_counts) == 0) {
+    NA_character_
+  } else {
+    paste(
+      marker_counts$n,
+      marker_counts$marker_key,
+      sep = "___",
+      collapse = ";"
+    )
+  }
+},
+
+    .groups = "drop"
+  )
+
+UPDATED_FULL_RECORD_DB <- master_db %>%
+  left_join(bold_summary, by = ".master_row") %>%
+  select(-.master_row)
 
 ```
 
 #Remote BOLD Searching
 ```{r}
-vector_names <- UPDATED_FULL_RECORD_DB %>%
-  select(Scientific.Name, scientificName, acceptedNameUsage, speciesNOsubgenus) %>%
-  mutate(across(everything(), toupper)) %>%
-  unlist(use.names = FALSE) %>%
-  unique() %>%
-  na.omit()
 
-BOLD_names_db <- data.frame(Scientific.Name = vector_names)
+#TODO: THIS IS NOT WORKING FULLY YET. No non-api key mechanism for pulling remotely.
 
-bold_results <- bold_tax_name(BOLD_names_db$Scientific.Name, fuzzy = TRUE)
+name_fields <- c(
+  "scientificName",
+  "acceptedNameUsage",
+  "speciesNOsubgenus"
+)
+
+records_to_search <- UPDATED_FULL_RECORD_DB %>%
+  mutate(.master_row = row_number()) %>%
+  filter(is.na(bold_identification))
+
+name_lookup <- records_to_search %>%
+  select(.master_row, all_of(name_fields)) %>%
+  pivot_longer(
+    cols = all_of(name_fields),
+    names_to = "name_field",
+    values_to = "query_name"
+  ) %>%
+  filter(!is.na(query_name), str_trim(query_name) != "") %>%
+  mutate(
+    query_name = str_trim(query_name),
+    query_key = normalize_name(query_name)
+  ) %>%
+  distinct(.master_row, name_field, query_name, query_key)
+
+query_names <- unique(name_lookup$query_name)
+
+if (length(query_names) > 0) {
+  name_batches <- split(
+  query_names,
+  ceiling(seq_along(query_names) / 100)
+)
+  bold_tax_results <- purrr::map_dfr(
+  seq_along(name_batches),
+  function(i) {
+    message(
+      "BOLD taxonomy batch ", i, " / ", length(name_batches)
+    )
+
+    result <- tryCatch(
+      bold::bold_tax_name(
+        name = name_batches[[i]],
+        fuzzy = FALSE
+      ),
+      error = function(e) {
+        warning("Batch ", i, " failed: ", conditionMessage(e))
+        NULL
+      }
+    )
+
+    if (is.null(result) || nrow(result) == 0) {
+      return(tibble())
+    }
+
+    as_tibble(result)
+  }
+)
+
+  write_tsv(bold_tax_results, "BOLD_remote_taxonomy_candidates.tsv")
+
+  #Inspect results
+  bold_tax_results %>%
+  select(any_of(c(
+    "input", "taxid", "taxon", "tax_rank",
+    "tax_division", "parentid", "parentname"
+  ))) %>%
+  arrange(input, taxid)
+  
+  bold_tax_candidates <- bold_tax_results %>%
+  mutate(
+    query_key = normalize_name(input),
+    taxon_key = normalize_name(taxon)
+  ) %>%
+  left_join(
+    name_lookup,
+    by = "query_key"
+  ) %>%
+  distinct(
+    .master_row, name_field, query_name,
+    taxid, taxon, tax_rank, tax_division
+  )
+  
+  ambiguous_taxa <- bold_tax_candidates %>%
+  distinct(query_name, taxid, taxon, tax_rank) %>%
+  count(query_name, name = "n_candidates") %>%
+  filter(n_candidates > 1)
+  
+  if (nrow(ambiguous_taxa) > 0) {
+    ambiguous_taxa
+    message("Check ambiguous_taxa and correct in bold_tax_candidates")
+  } else {
+    
+    
+    
+    
+    
+    
+    
+    
+  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+} else {
+  message("No records to do a remote search of BOLD")
+}
+
+
+
 ```
 
+#Remove positive controls from UPDATED_FULL_RECORD_DB
+```{r}
+pos_control_removed <- UPDATED_FULL_RECORD_DB[!(UPDATED_FULL_RECORD_DB$Scientific.Name %in% positive_control$Scientific.Name), ]
 
-
-
-
-
-
-
-#TODO REMOVE POSITIVE CONTROLS FROM TABLE
+UPDATED_FULL_RECORD_DB <- pos_control_removed
+```
 
 #Merge scientific name table (UPDATED_FULL_RECORD_DB) with the original request table
 ```{r}
@@ -1695,6 +2712,7 @@ input_list_merge_records$identifier %>% unique() %>%  length()
 ```
 
 #Export the full record DB
+#NOTE: when reading in have to use read_delim NOT read.delim
 ```{r}
 write.table(input_list_merge_records, file="export/FINAL_merge_records.txt", sep='\t', quote=FALSE, row.names=FALSE, col.names = TRUE)
 
@@ -1715,85 +2733,4 @@ write.table(filtered_df, file="export/scientificNameTable_FINAL_SpeciesPlusSubDa
 filtered_df <- subset(UPDATED_FULL_RECORD_DB, taxonRank %in% c("Genus", "Subgenus"))
 write.table(filtered_df, file="export/scientificNameTable_FINAL_GenusPlusSubgenusDatabase.txt", sep='\t', quote=FALSE, row.names=FALSE, col.names=TRUE)
 
-```
-
-#Prioritization
-
-#SHOULD ALSO INCLUDE prioritization based on proximity to mitogenome hit (same species, genus, family)
-
-```{r}
-PRIORITY <- read_xlsx(here("export","scientificNameTable_FINAL_GeneraSpeciesDatabase_RegionPriority.xlsx"), na = "NA", col_types = "text")
-
-assign_priority <- function(df) {
-  df$priority <- NA_integer_
-  
-  other_mito_cols <- c(
-    "linear_noClaim_verified_subTreeHits", "linear_noClaim_unverified_subTreeHits",
-    "linear_complete_verified_subTreeHits", "circular_noClaim_verified_subTreeHits",
-    "circular_claimComplete_verified_subTreeHits", "linear_claimComplete_verified_subTreeHits",
-    "linear_complete_unverified_subTreeHits", "circular_noClaim_unverified_subTreeHits"
-  )
-  
-  good_mito_cols <- c("circular_complete_verified_subTreeHits", "circular_complete_unverified_subTreeHits")
-  
-  all_mito_cols <- c("linear_noClaim_verified_subTreeHits", "linear_noClaim_unverified_subTreeHits",
-    "linear_complete_verified_subTreeHits", "circular_noClaim_verified_subTreeHits",
-    "circular_claimComplete_verified_subTreeHits", "linear_claimComplete_verified_subTreeHits",
-    "linear_complete_unverified_subTreeHits", "circular_noClaim_unverified_subTreeHits", "circular_complete_verified_subTreeHits", "circular_complete_unverified_subTreeHits"
-    )
-  
-  # Priority 1
-  df$priority[is.na(df$identifier) & is.na(df$accepted_NCBI)] <- 1
-  
-  # Priority 2
-  df$priority[
-    is.na(df$priority) &
-    is.na(df$high_potential_sra_subTreeHits) &
-    rowSums(!is.na(df[, all_mito_cols])) == 0
-  ] <- 2
-  
-  # Priority 3
-  df$priority[
-    is.na(df$priority) &
-    rowSums(!is.na(df[, all_mito_cols])) == 0 &
-    !is.na(df$high_potential_sra_subTreeHits)
-  ] <- 3
-  
-  # Priority 4
-  df$priority[
-    is.na(df$priority) &
-    rowSums(!is.na(df[, other_mito_cols])) > 0 &
-    rowSums(!is.na(df[, good_mito_cols])) == 0
-  ] <- 4
-  
-  # Priority 5
-  df$priority[
-    is.na(df$priority)
-  ] <- 5
-  
-  # Priority 6
-  df$priority[
-    rowSums(!is.na(df[, good_mito_cols])) > 0 &
-    !is.na(df$circular_complete_verified_subTreeHits_midPriority_RegionRep) &
-    is.na(df$circular_complete_verified_subTreeHits_lowestPriority_Precision)
-  ] <- 6
-
-  # Priority 7
-  df$priority[
-    !is.na(df$circular_complete_verified_subTreeHits_lowestPriority_Precision)
-  ] <- 7
-  
-  return(df)
-}
-
-
-PRIORITY <- assign_priority(PRIORITY)
-
-PRIORITY$priority_label <- factor(PRIORITY$priority, levels = 1:7, labels = c(
-  "never_sequenced", "sequenced_no_mito_no_SRA", "sequenced_SRA_only", 
-  "sequenced_low_conf_mito", "sequenced_good_mito_global", 
-  "sequenced_good_mito_regional", "sequenced_good_mito_precise"
-))
-
-write.table(PRIORITY, file=here("export/scientificNameTable_FINAL_GeneraSpeciesDatabase_PRIORITYadded.txt"), sep='\t', quote=FALSE, row.names=FALSE, col.names = TRUE)
 ```

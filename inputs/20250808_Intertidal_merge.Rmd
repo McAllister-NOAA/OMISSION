@@ -38,7 +38,11 @@ MPA_baseline <- read_xlsx(here("inputs", "MPA_baseline", "mpa_baseline_formatted
 
 SCAMIT <- read_csv(here("inputs", "SCAMIT", "SCAMIT_SpeciesEd12-20180703_formatted.csv"))
 
-colnames(SCAMIT)
+CDFW_OPC <- read_csv(here("inputs", "CDFW_OPC", "CDFW_OPC_List_formatted.csv"))
+
+IUCN_CA <- read_csv(here("inputs", "IUCN_CA", "IUCN_CA_formatted.csv"))
+
+colnames(CDFW_OPC)
 ```
 
 # Format to only select key categories and drop all other ancillary information
@@ -68,6 +72,10 @@ MPA_baseline_2_merge <- MPA_baseline %>% dplyr::select(`Project.Request`=`Projec
 
 SCAMIT_2_merge <- SCAMIT %>% dplyr::select(`Project.Request`=`Project Requested`,`Scientific.Name` =`scientific_name`,`Point.of.Contact.for.Submission`=`Point of Contact for Submission`,`Email`,`Common.Name`=`Common Name`, `Survey.Type`=`Survey Type`)
 
+CDFW_OPC_2_merge <- CDFW_OPC %>% dplyr::select(`Project.Request`=`Project Request`,`Scientific.Name` =`Scientific Name`,`Point.of.Contact.for.Submission`=`Point of Contact`,`Email`,`Common.Name`=`Common Name`, `Survey.Type`=`Survey Type`)
+
+IUCN_CA_2_merge <- IUCN_CA %>% dplyr::select(`Project.Request`=`Project Request`,`Scientific.Name` =`Scientific Name`,`Point.of.Contact.for.Submission`=`Point of Contact`,`Email`,`Common.Name`=`Common Name`, `Survey.Type`=`Survey Type`)
+
 ```
 
 # Merge all the data
@@ -83,16 +91,18 @@ CalNEMO_2_merge,
 lightSmith_manual_2_merge,
 Marine_Inverts_CA_2_merge,
 MPA_baseline_2_merge,
-SCAMIT_2_merge) -> intertidal_list_assembled_raw
+SCAMIT_2_merge,
+CDFW_OPC_2_merge,
+IUCN_CA_2_merge) -> intertidal_list_assembled_raw
 
 ```
 
 #Run cleanup script
 ```{r}
 species_only <- intertidal_list_assembled_raw %>% select(Scientific.Name)
-write.table(species_only, file=here("inputs", "intertidal_list_assembled_raw.txt"), sep='\t', quote=FALSE, row.names=FALSE, col.names = TRUE)
+write.table(intertidal_list_assembled_raw, file=here("inputs", "intertidal_list_assembled_raw.txt"), sep='\t', quote=FALSE, row.names=FALSE, col.names = TRUE)
 
-system("Rscript --vanilla /Users/mcallister/software/scripts/github/OMISSION/assets/import_and_clean.R /Users/mcallister/software/scripts/github/OMISSION/inputs /Users/mcallister/software/scripts/github/OMISSION/inputs/intertidal_list_assembled_intermediate.txt Scientific.Name")
+system("Rscript --vanilla /Users/mcallister/software/scripts/github/OMISSION/assets/import_and_clean.R /Users/mcallister/software/scripts/github/OMISSION/inputs /Users/mcallister/software/scripts/github/OMISSION/inputs/intertidal_list_assembled_raw.txt Scientific.Name")
 ```
 
 #Load in cleaned file

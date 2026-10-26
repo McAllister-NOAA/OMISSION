@@ -3,31 +3,34 @@ args <- commandArgs(trailingOnly = TRUE)
 
 ########################################
 #TEMP WHILE WORKING ON SCRIPT
-#args[1]<-"/Users/mcallister/Desktop/03_Projects/03_Mitogenomes/gap_analysis/10_testing/" #Export Directory
-#args[2]<-"/Users/mcallister/software/scripts/github/OMISSION/inputs/CalNEMO/nemesis_species_list_formatted.csv" #Path to input file
-#args[3]<-"scientific_name" #Header text for query taxa names
+# args[1]<-"/Users/mcallister/Desktop/03_Projects/03_Mitogenomes/gap_analysis/16_OMISSION_TESTING/" #Export Directory
+# args[2]<-"/Users/mcallister/software/scripts/github/OMISSION/inputs/CDFW_OPC/CDFW_OPC_List_formatted.csv" #Path to input file
+# args[3]<-"Scientific Name" #Header text for query taxa names
 ########################################
 
 library(tidyverse)
 library(readxl)
+library(readr)
 
 setwd(as.character(args[1]))
-system(paste0("cp ",as.character(args[2])," ./list_input.txt", sep = ""))
+input_ext <- tools::file_ext(args[2])
+input_copy <- paste0("list_input.", input_ext)
+file.copy(args[2], input_copy, overwrite = TRUE)
 
 # Load in Data - expect tab-delim w/ headers
 read_any <- function(file) {
   ext <- tools::file_ext(file)
   switch(tolower(ext),
-         "csv"  = read.csv(file, header=TRUE, stringsAsFactors = FALSE),
-         "tsv"  = read.delim(file, sep = "\t", header=TRUE, stringsAsFactors = FALSE),
-         "txt"  = read.delim(file, sep = "\t", header=TRUE, stringsAsFactors = FALSE),
-         "xlsx" = read_xlsx(file, col_names = TRUE),
+         "csv"  = readr::read_csv(file, col_names=TRUE, show_col_types = FALSE, na = character(), name_repair = "minimal"),
+         "tsv"  = readr::read_tsv(file, col_names=TRUE, show_col_types = FALSE, na = character(), name_repair = "minimal"),
+         "txt"  = readr::read_tsv(file, col_names=TRUE, show_col_types = FALSE, na = character(), name_repair = "minimal"),
+         "xlsx" = readxl::read_xlsx(file, col_names = TRUE),
          stop("Unknown/Unsupported file type: ", ext)
   )
 }
 
 raw_file <- read_any(as.character(args[2]))
-names(raw_file)[names(raw_file) == make.names(args[3])] <- "Scientific.Name"
+names(raw_file)[names(raw_file) == args[3]] <- "Scientific.Name"
 
 list_assembled_raw <- raw_file %>% mutate(original_Scientific.Name = Scientific.Name)
 
@@ -45,10 +48,9 @@ list_assembled_raw <- list_assembled_raw %>%
 list_assembled_raw <- list_assembled_raw %>%
   filter(!(is.na(Scientific.Name) | Scientific.Name == "NA"))
 
-#Remove trailing special characters (*, ?)
+#Remove special characters (*, ?)
 list_assembled_raw <- list_assembled_raw %>%
-  mutate(Scientific.Name = str_replace(Scientific.Name, "[*?]+$", ""))
-list_assembled_raw <- list_assembled_raw %>%
+  mutate(Scientific.Name = str_replace_all(Scientific.Name, "[*?]", "")) %>%
   mutate(Scientific.Name = str_trim(Scientific.Name))
 
 #Remove trailing sp, spp, sp., spp., ssp., ssp

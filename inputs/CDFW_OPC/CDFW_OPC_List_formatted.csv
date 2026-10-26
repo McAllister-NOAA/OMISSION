@@ -25,8 +25,7 @@ CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pink abalone,Haliotis c
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pinto abalone,Haliotis kamtschatkana,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Flat abalone,Haliotis walallensis,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,California spiny lobster,Panulirus interruptus,Monitored
-CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pacific gaper clam,"Tresus nuttallii
-",Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pacific gaper clam,Tresus nuttallii,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Fat gaper clam,Tresus capax,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pacific geoduck clam,Panopea generosa,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pacific razor clam,Siliqua patula,Monitored
@@ -62,7 +61,8 @@ CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Warty sea cucumber,Para
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Wavy Turban snail,Megastrea undosa,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Albacore Tuna,Thunnus alalunga,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Barred Sand Bass,Paralabrax nebulifer,Monitored
-CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Barred Surfperch and Redtail Surfperch,Amphistichus argenteus and Amphistichus rhodoterus,Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Barred Surfperch,Amphistichus argenteus,Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Redtail Surfperch,Amphistichus rhodoterus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Bat Ray,Myliobatis californica,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Bigeye Tuna,Thunnus obesus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Black Croaker,Cheilotrema saturnum,Monitored
@@ -73,7 +73,7 @@ CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Blacksmith,Chromis punc
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Blue Rockfish,Sebastes mystinus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Blue Shark,Prionace glauca,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Bocaccio Rockfish,Sebastes paucispinis,Monitored
-CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Broadnose Sevengill Shark,Notorynchus cepedianus (formerly N. maculatus),Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Broadnose Sevengill Shark,Notorynchus cepedianus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Brown Rockfish,Sebastes auriculatus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Brown Smoothhound Shark,Mustelus henlei,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Cabezon,Scorpaenichthys marmoratus,Monitored
@@ -85,9 +85,10 @@ CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,California Halibut,Para
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,California Moray Eel,Gymnothorax mordax,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,California Mussel,Mytilus californianus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,California Scorpionfish,Scorpaena guttata,Monitored
-CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,California Sheephead,Bodianus (formerly Semicossyphus) pulcher,Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,California Sheephead,Bodianus pulcher,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,California Spiny Lobster,Panulirus interruptus,Monitored
-CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,California Two-Spot Octopus,Octopus bimaculatus and Octopus bimaculoides,Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,California Two-Spot Octopus,Octopus bimaculatus,Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,California Two-Spot Octopus,Octopus bimaculoides,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Canary Rockfish,Sebastes pinniger,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Chilipepper Rockfish,Sebastes goodei,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,China Rockfish,Sebastes nebulosus,Monitored
@@ -102,7 +103,8 @@ CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Dungeness Crab,Metacarc
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Eelgrass,Zostera marina,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Flag Rockfish,Sebastes rubrivinctus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Garibaldi,Hypsypops rubicundus,Monitored
-CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Giant Kelp and Bull Kelp,Macrocystis pyrifera and Nereocystis luetkeana,Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Bull Kelp,Nereocystis luetkeana,Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Giant Kelp,Macrocystis pyrifera,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Giant Red Sea Cucumber,Apostichopus californicus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Giant Sea Bass,Stereolepis gigas,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Gopher Rockfish,Sebastes carnatus,Monitored
@@ -121,7 +123,7 @@ CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Kelp Greenling,Hexagram
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Kelp Rockfish,Sebastes atrovirens,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Leopard Shark,Triakis semifasciata,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Lingcod,Ophiodon elongatus,Monitored
-CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Market Squid,Doryteuthis (Loligo) opalescens,Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Market Squid,Doryteuthis opalescens,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Monkeyface Prickleback,Cebidichthys violaceus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Night Smelt,Spirinchus starksi,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Northern Anchovy,Engraulis mordax,Monitored
@@ -135,7 +137,8 @@ CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pacific Barracuda,Sphyr
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pacific Bluefin Tuna,Thunnus orientalis,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pacific Bonito,Sarda chiliensis,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pacific Butterfish,Peprilus simillimus,Monitored
-CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pacific Gaper Clam and Fat Gaper Clam,Tresus nuttallii and Tresus capax,Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pacific Gaper Clam,Tresus nuttallii,Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Fat Gaper Clam,Tresus capax,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pacific Geoduck Clam,Panopea generosa,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pacific hagfish,Eptatretus stoutii,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pacific Halibut,Hippoglossus stenolepis,Monitored
@@ -146,20 +149,22 @@ CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pacific Sanddab,Cithari
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pacific Sardine,Sardinops sagax,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pacific Spiny Dogfish,Squalus suckleyi,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pacific Whiting,Merluccius productus,Monitored
-CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pile Perch,Phanerodon vacca (previously Damalichthys vacca),Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pile Perch,Phanerodon vacca,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Pismo Clam,Tivela stultorum,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Queenfish,Seriphus politus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Quillback Rockfish,Sebastes maliger,Monitored
-CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Rainbow Seaperch,Embiotoca caryi (previously Hypsurus caryi),Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Rainbow Seaperch,Embiotoca caryi,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Red Sea Urchin,Mesocentrotus franciscanus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Redstripe Rockfish,Sebastes proriger,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Ridgeback Prawn,Sicyonia ingentis,Monitored
-CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Rock Crabs,"Cancer productus, Metacarcinus anthonyi, and Romaleon antennarium",Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Rock Crabs,Cancer productus,Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Rock Crabs,Metacarcinus anthonyi,Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Rock Crabs,Romaleon antennarium,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Rock Greenling,Hexagrammos lagocephalus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Rock Wrasse,Halichoeres semicinctus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Rosethorn Rockfish,Sebastes helvomaculatus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Rosy Rockfish,Sebastes rosaceus,Monitored
-CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Round Stingray,Urobatis halleri (Previously Urolophus halleri),Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Round Stingray,Urobatis halleri,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Rubberlip Seaperch,Rhacochilus toxotes,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Sablefish,Anoplopoma fimbria,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Salmon Shark,Lamna ditropis,Monitored
@@ -172,7 +177,7 @@ CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Shortfin Mako Shark,Isu
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Shovelnose Guitarfish,Rhinobatos productus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Silver Surfperch,Hyperprosopon ellipticum,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Skipjack Tuna,Katsuwonus pelamis,Monitored
-CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Slender Crab,Metacarcinus gracilis (formerly Cancer gracilis),Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Slender Crab,Metacarcinus gracilis,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Smallhead Flyingfish,Cheilopogon pinnatibarbatus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Soupfin Shark,Galeorhinus galeus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Speckled Rockfish,Sebastes ovalis,Monitored
@@ -182,22 +187,25 @@ CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Spotted Sand Bass,Paral
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Squarespot Rockfish,Sebastes hopkinsi,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Starry Flounder,Platichthys stellatus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Starry Rockfish,Sebastes constellatus,Monitored
-CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Striped Bass,Morone saxatilis (Previously Roccus saxatilis),Monitored
-CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Striped Marlin,Kajikia audax (Previously Tetrapturus audax),Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Striped Bass,Morone saxatilis,Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Striped Marlin,Kajikia audax,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Striped Seaperch,Embiotoca lateralis,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Stripetail Rockfish,Sebastes saxicola,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Surf Smelt,Hypomesus pretiosus,Monitored
-CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Surfgrass,Phyllospadix scouleri and Phyllospadix torreyi,Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Surfgrass,Phyllospadix scouleri,Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Surfgrass,Phyllospadix torreyi,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Swell Shark,Cephaloscyllium ventriosum,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Swordfish,Xiphias gladius,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Thornback,Platyrhinoidis triseriata,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Tiger Rockfish,Sebastes nigrocinctus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Topsmelt,Atherinops affinis,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Treefish,Sebastes serriceps,Monitored
-CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Vermilion / Sunset Rockfish,Sebastes miniatus / crocotulus,Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Vermilion Rockfish,Sebastes miniatus,Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Sunset Rockfish,Sebastes crocotulus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Walleye Surfperch,Hyperprosopon argenteum,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Warty Sea Cucumber,Apostichopus parvimensis,Monitored
-CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Washington Clam and Butter Clam,Saxidomus nuttalli and Saxidomus giganteus,Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Washington Clam,Saxidomus nuttalli,Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Butter Clam,Saxidomus giganteus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,White Croaker,Genyonemus lineatus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,White Seabass,Atractoscion nobilis,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,White Shark,Carcharodon carcharias,Monitored
@@ -207,7 +215,7 @@ CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Wolf-Eel,Anarrhichthys 
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Yelloweye Rockfish,Sebastes ruberrimus,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Yellowfin Croaker,Umbrina roncador,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Yellowfin Tuna,Thunnus albacares,Monitored
-CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Yellowtail,Seriola dorsalis (Previously S. lalandi),Monitored
+CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Yellowtail,Seriola dorsalis,Monitored
 CDFW Species of Interest,Zack Gold,zachary.gold@noaa.gov,Yellowtail Rockfish,Sebastes flavidus,Monitored
 STATE AND FEDERALLY LISTED ENDANGERED AND THREATENED ANIMALS OF CALIFORNIA July 2025,Zack Gold,zachary.gold@noaa.gov,black abalone,Haliotis cracherodii,Monitored
 STATE AND FEDERALLY LISTED ENDANGERED AND THREATENED ANIMALS OF CALIFORNIA July 2025,Zack Gold,zachary.gold@noaa.gov,white abalone,Haliotis sorenseni,Monitored
@@ -225,10 +233,10 @@ STATE AND FEDERALLY LISTED ENDANGERED AND THREATENED ANIMALS OF CALIFORNIA July 
 STATE AND FEDERALLY LISTED ENDANGERED AND THREATENED ANIMALS OF CALIFORNIA July 2025,Zack Gold,zachary.gold@noaa.gov,steelhead - northern California DPS summer-run,Oncorhynchus mykiss irideus,Monitored
 STATE AND FEDERALLY LISTED ENDANGERED AND THREATENED ANIMALS OF CALIFORNIA July 2025,Zack Gold,zachary.gold@noaa.gov,steelhead - northern California DPS winter-run,Oncorhynchus mykiss irideus,Monitored
 STATE AND FEDERALLY LISTED ENDANGERED AND THREATENED ANIMALS OF CALIFORNIA July 2025,Zack Gold,zachary.gold@noaa.gov,chinook salmon - Sacramento River winter-run ESU,Oncorhynchus tshawytscha,Monitored
-STATE AND FEDERALLY LISTED ENDANGERED AND THREATENED ANIMALS OF CALIFORNIA July 2025,Zack Gold,zachary.gold@noaa.gov,chinook salmon - Central Valley springrun ESU,Oncorhynchus tshawytscha pop. 11,Monitored
-STATE AND FEDERALLY LISTED ENDANGERED AND THREATENED ANIMALS OF CALIFORNIA July 2025,Zack Gold,zachary.gold@noaa.gov,chinook salmon - southern Oregon/northern California coastal,Oncorhynchus tshawytscha pop. 14,Monitored
-STATE AND FEDERALLY LISTED ENDANGERED AND THREATENED ANIMALS OF CALIFORNIA July 2025,Zack Gold,zachary.gold@noaa.gov,chinook salmon - California coastal ESU,Oncorhynchus tshawytscha pop. 17,Monitored
-STATE AND FEDERALLY LISTED ENDANGERED AND THREATENED ANIMALS OF CALIFORNIA July 2025,Zack Gold,zachary.gold@noaa.gov,chinook salmon - upper Klamath and Trinity Rivers ESU,Oncorhynchus tshawytscha pop. 30,Monitored
+STATE AND FEDERALLY LISTED ENDANGERED AND THREATENED ANIMALS OF CALIFORNIA July 2025,Zack Gold,zachary.gold@noaa.gov,chinook salmon - Central Valley springrun ESU,Oncorhynchus tshawytscha,Monitored
+STATE AND FEDERALLY LISTED ENDANGERED AND THREATENED ANIMALS OF CALIFORNIA July 2025,Zack Gold,zachary.gold@noaa.gov,chinook salmon - southern Oregon/northern California coastal,Oncorhynchus tshawytscha,Monitored
+STATE AND FEDERALLY LISTED ENDANGERED AND THREATENED ANIMALS OF CALIFORNIA July 2025,Zack Gold,zachary.gold@noaa.gov,chinook salmon - California coastal ESU,Oncorhynchus tshawytscha,Monitored
+STATE AND FEDERALLY LISTED ENDANGERED AND THREATENED ANIMALS OF CALIFORNIA July 2025,Zack Gold,zachary.gold@noaa.gov,chinook salmon - upper Klamath and Trinity Rivers ESU,Oncorhynchus tshawytscha,Monitored
 STATE AND FEDERALLY LISTED ENDANGERED AND THREATENED ANIMALS OF CALIFORNIA July 2025,Zack Gold,zachary.gold@noaa.gov,unarmored threespine stickleback,Gasterosteus aculeatus williamsoni,Monitored
 STATE AND FEDERALLY LISTED ENDANGERED AND THREATENED ANIMALS OF CALIFORNIA July 2025,Zack Gold,zachary.gold@noaa.gov,tidewater goby,Eucyclogobius newberryi,Monitored
 STATE AND FEDERALLY LISTED ENDANGERED AND THREATENED ANIMALS OF CALIFORNIA July 2025,Zack Gold,zachary.gold@noaa.gov,cackling (=Aleutian Canada) goose,Branta hutchinsii leucopareia,Monitored

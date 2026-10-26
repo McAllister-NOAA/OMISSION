@@ -1,0 +1,421 @@
+---
+title: "Country Metadata"
+author: "Sean McAllister"
+date: "8/6/2025"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(readxl)
+```
+
+# Set the working directory
+```{r, setup, include=FALSE}
+knitr::opts_knit$set(root.dir = "/Users/mcallister/Desktop/03_Projects/03_Mitogenomes/gap_analysis/11_test_INTERTIDAL")
+```
+
+
+#Prioritization
+##SHOULD ALSO INCLUDE prioritization based on proximity to mitogenome hit (same species, genus, family)
+
+##Prepping locality-specific prioritization
+```{r}
+system("mkdir -p prioritization")
+system("cat NCBI_search/taxIDs/NCBI_output_mito*combined.txt > prioritization/all_mito.txt")
+system("
+awk -F'\\t' '{
+    subtype = $11;
+    subname = $12;
+    country = \"NA\";
+    n = split(subtype, subtype_arr, \"|\");
+    m = split(subname, subname_arr, \"|\");
+    for (i = 1; i <= n; i++) {
+        if (subtype_arr[i] == \"country\") {
+            if (i <= m) {
+                country = subname_arr[i];
+            }
+            break;
+        }
+    }
+    print $0 \"\\t\" country;
+}' prioritization/all_mito.txt > prioritization/all_mito_with_country.txt
+")
+
+system("cat prioritization/all_mito_with_country.txt | cut -f13 | sort | uniq -c > prioritization/location_info_discuss.txt")
+```
+
+##MANUAL: Import fixed width. Add header row and column "Assignment", and assign entries in location_info_discuss.txt to the categories "precise", "mid", "bad". "precise" should be localities that match with the target region of interest (narrow or broad). "mid" should be localities that might not be exactly in the target area but either are nearby (close regional matches) or are unclear (i.e. a description that could include a precise match and may not, like "USA" when looking for matches on the West Coast only). "bad" should be any country assignment that is not nearby the target region of interest. Save as xlsx "splitting_country_identifiers.xlsx".
+
+##Import assignment file and process
+```{r}
+country_assignments <- read_xlsx("prioritization/splitting_country_identifiers.xlsx", col_types = "text", na = c("","NA"), col_names = TRUE)
+
+add_country <- function(df) {
+  df %>%
+    rowwise() %>%
+    mutate(country = {
+      subtype_arr <- strsplit(SubType, "\\|")[[1]]
+      subname_arr <- strsplit(SubName, "\\|")[[1]]
+      i <- which(subtype_arr == "country")
+      if (length(i) > 0 && i <= length(subname_arr)) subname_arr[i] else NA_character_
+    }) %>%
+    ungroup()
+}
+
+File03_taxid_search <- File03_taxid_search %>%
+  add_country() %>%
+  left_join(country_assignments, by = c("country" = "Country"))
+File05_taxid_search <- File05_taxid_search %>%
+  add_country() %>%
+  left_join(country_assignments, by = c("country" = "Country"))
+File06_taxid_search <- File06_taxid_search %>%
+  add_country() %>%
+  left_join(country_assignments, by = c("country" = "Country"))
+
+```
+
+# Merge new filtered mitochondrial results
+```{r}
+#Prep the FULL_RECORD_DB
+UPDATED_FULL_RECORD_DB <- UPDATED_FULL_RECORD_DB %>%
+  mutate(
+    subtree_identifier_taxIDs = strsplit(as.character(subtree_identifier_taxIDs), ";"),
+    subtree_accepted_taxIDs = strsplit(as.character(subtree_accepted_taxIDs), ";")
+  )
+
+all_categories <- bind_rows(
+  File03_taxid_search %>% select(mitochondrial_category),
+  File05_taxid_search %>% select(mitochondrial_category),
+  File06_taxid_search %>% select(mitochondrial_category)
+) %>%
+  distinct() %>%
+  pull(mitochondrial_category)
+
+direct_columns <- paste0(all_categories, "_directHits")
+subtree_columns <- paste0(all_categories, "_subTreeHits")
+
+new_columns <- c(direct_columns, subtree_columns)
+
+for (col in new_columns) {
+  if (!col %in% colnames(UPDATED_FULL_RECORD_DB)) {
+    UPDATED_FULL_RECORD_DB[[col]] <- NA_character_
+  }
+}
+
+
+
+
+STOP here
+need to set the labels for the suffix in the "direct columns" and "subtree columns" code above
+
+
+
+
+
+# Helper function for matching and summarizing
+summarize_hits_suffix <- function(identifier, accepted_NCBI, subtree_identifier_taxIDs, subtree_accepted_taxIDs, ncbi_data, assignment, suffix_label) {
+  ncbi_data <- ncbi_data %>% #Filter File0[356] to just those with desired geographic quality assignment
+    filter(Assignment == assignment)
+  
+  direct_hits <- ncbi_data %>%
+    filter(!is.na(TaxId) & TaxId %in% na.omit(c(identifier, accepted_NCBI)))
+  subtree_hits <- ncbi_data %>% 
+    filter(!is.na(TaxId) & TaxId %in% na.omit(unlist(c(subtree_identifier_taxIDs, subtree_accepted_taxIDs))))
+
+  summarize_category <- function(df) {
+    if (nrow(df) == 0) return(NA)
+    count <- nrow(df)
+    slen_range <- paste0(min(df$Slen), "-", max(df$Slen))
+    accession_list <- paste(unique(df$AccessionVersion), collapse = ";")
+    organism_taxid_list <- paste0(df$Organism, " (", df$TaxId, ")")
+    organism_combined <- paste(unique(organism_taxid_list), collapse = ";")
+    paste(count, slen_range, accession_list, organism_combined, sep = "___")
+  }
+
+  categories <- unique(ncbi_data$mitochondrial_category)
+  
+  result <- sapply(categories, function(cat) {
+  direct_summary <- summarize_category(direct_hits %>% filter(mitochondrial_category == cat))
+  subtree_summary <- summarize_category(subtree_hits %>% filter(mitochondrial_category == cat))
+  c(direct_summary, subtree_summary)
+  })
+  direct_results <- result[1, ]
+  subtree_results <- result[2, ]
+  names(direct_results) <- paste0(categories, "_directHits", suffix_label)
+  names(subtree_results) <- paste0(categories, "_subTreeHits", suffix_label)
+  result <- c(direct_results, subtree_results)
+  
+  
+  expected_length <- 2 * length(categories)
+  if (length(result) != expected_length) {
+    stop("Mismatch between categories and result length!")
+  }
+  
+  return(result)
+}
+
+#Run for Subspecies NCBI search
+target_rows <- UPDATED_FULL_RECORD_DB %>%
+  filter(taxonRank %in% c("Subspecies", "Forma", "Variety"))
+
+target_rows <- target_rows %>%
+  rowwise() %>%
+  mutate(
+    results = list(
+      summarize_hits_suffix(
+        identifier = identifier,
+        accepted_NCBI = accepted_NCBI,
+        subtree_identifier_taxIDs = subtree_identifier_taxIDs,
+        subtree_accepted_taxIDs = subtree_accepted_taxIDs,
+        ncbi_data = File05_taxid_search_mid,
+        suffix = "_midPriority"
+      )
+    )
+  ) %>%
+  mutate(across(all_of(new_columns_mid), ~ {
+    if (cur_column() %in% names(results)) {
+      results[[cur_column()]]
+      } else {NA_character_}}, .names = "{col}")) %>%
+  select(-results)
+
+target_rows <- target_rows %>%
+  rowwise() %>%
+  mutate(
+    results = list(
+      summarize_hits_suffix(
+        identifier = identifier,
+        accepted_NCBI = accepted_NCBI,
+        subtree_identifier_taxIDs = subtree_identifier_taxIDs,
+        subtree_accepted_taxIDs = subtree_accepted_taxIDs,
+        ncbi_data = File05_taxid_search_precise,
+        suffix = "_lowPriorityPrecise"
+      )
+    )
+  ) %>%
+  mutate(across(all_of(new_columns_precise), ~ {
+    if (cur_column() %in% names(results)) {
+      results[[cur_column()]]
+      } else {NA_character_}}, .names = "{col}")) %>%
+  select(-results)
+
+UPDATED_FULL_RECORD_DB <- UPDATED_FULL_RECORD_DB %>%
+  left_join(target_rows, by = "Scientific.Name", suffix = c("", "_new")) %>%
+  mutate(across(ends_with("_midPriority_directHits"), ~ coalesce(get(paste0(cur_column(), "_new")), .))) %>%
+  mutate(across(ends_with("_lowPriorityPrecise_directHits"), ~ coalesce(get(paste0(cur_column(), "_new")), .))) %>%
+  mutate(across(ends_with("_midPriority_subTreeHits"), ~ coalesce(get(paste0(cur_column(), "_new")), .))) %>%
+  mutate(across(ends_with("_lowPriorityPrecise_subTreeHits"), ~ coalesce(get(paste0(cur_column(), "_new")), .))) %>%
+  select(-ends_with("_new"))
+
+#Run for Species NCBI search
+target_rows <- UPDATED_FULL_RECORD_DB %>%
+  filter(taxonRank == "Species")
+
+target_rows <- target_rows %>%
+  rowwise() %>%
+  mutate(
+    results = list(
+      summarize_hits_suffix(
+        identifier = identifier,
+        accepted_NCBI = accepted_NCBI,
+        subtree_identifier_taxIDs = subtree_identifier_taxIDs,
+        subtree_accepted_taxIDs = subtree_accepted_taxIDs,
+        ncbi_data = File03_taxid_search_mid,
+        suffix = "_midPriority"
+      )
+    )
+  ) %>%
+  mutate(across(all_of(new_columns_mid), ~ {
+    if (cur_column() %in% names(results)) {
+      results[[cur_column()]]
+      } else {NA_character_}}, .names = "{col}")) %>%
+  select(-results)
+
+target_rows <- target_rows %>%
+  rowwise() %>%
+  mutate(
+    results = list(
+      summarize_hits_suffix(
+        identifier = identifier,
+        accepted_NCBI = accepted_NCBI,
+        subtree_identifier_taxIDs = subtree_identifier_taxIDs,
+        subtree_accepted_taxIDs = subtree_accepted_taxIDs,
+        ncbi_data = File03_taxid_search_precise,
+        suffix = "_lowPriorityPrecise"
+      )
+    )
+  ) %>%
+  mutate(across(all_of(new_columns_precise), ~ {
+    if (cur_column() %in% names(results)) {
+      results[[cur_column()]]
+      } else {NA_character_}}, .names = "{col}")) %>%
+  select(-results)
+
+target_rows_filt <- target_rows %>%
+  filter(!if_all(all_of(new_columns), is.na))
+
+UPDATED_FULL_RECORD_DB_FILT <- UPDATED_FULL_RECORD_DB %>%
+  filter(!if_all(all_of(new_columns), is.na))
+
+
+
+
+
+
+
+
+
+
+
+
+
+UPDATED_FULL_RECORD_DB <- UPDATED_FULL_RECORD_DB %>%
+  left_join(target_rows, by = "Scientific.Name", suffix = c("", "_new")) %>%
+  mutate(across(ends_with("_directHits"), ~ coalesce(get(paste0(cur_column(), "_new")), .))) %>%
+  mutate(across(ends_with("_subTreeHits"), ~ coalesce(get(paste0(cur_column(), "_new")), .))) %>%
+  select(-ends_with("_new"))
+
+
+#Run for Genus NCBI search
+target_rows <- UPDATED_FULL_RECORD_DB %>%
+  filter(taxonRank %in% c("Genus", "Subgenus"))
+
+target_rows <- target_rows %>%
+  rowwise() %>%
+  mutate(
+    results = list(
+      summarize_hits(
+        identifier = identifier,
+        accepted_NCBI = accepted_NCBI,
+        subtree_identifier_taxIDs = subtree_identifier_taxIDs,
+        subtree_accepted_taxIDs = subtree_accepted_taxIDs,
+        ncbi_data = File06_taxid_search
+      )
+    )
+  ) %>%
+  mutate(across(all_of(new_columns), ~ {
+    if (cur_column() %in% names(results)) {
+      results[[cur_column()]]
+      } else {NA_character_}}, .names = "{col}")) %>%
+  select(-results)
+
+UPDATED_FULL_RECORD_DB <- UPDATED_FULL_RECORD_DB %>%
+  left_join(target_rows, by = "Scientific.Name", suffix = c("", "_new")) %>%
+  mutate(across(ends_with("_directHits"), ~ coalesce(get(paste0(cur_column(), "_new")), .))) %>%
+  mutate(across(ends_with("_subTreeHits"), ~ coalesce(get(paste0(cur_column(), "_new")), .))) %>%
+  select(-ends_with("_new"))
+
+
+
+#Flatten the subtree taxIDs (return to normal)
+```{r}
+UPDATED_FULL_RECORD_DB <- UPDATED_FULL_RECORD_DB %>%
+  mutate(
+    subtree_identifier_taxIDs = sapply(subtree_identifier_taxIDs, function(x) paste(x, collapse = ";")),
+    subtree_accepted_taxIDs = sapply(subtree_accepted_taxIDs, function(x) paste(x, collapse = ";"))
+  )
+
+UPDATED_FULL_RECORD_DB_newbackup <- UPDATED_FULL_RECORD_DB
+```
+
+
+```
+  
+  
+  
+  
+  
+  
+  
+  
+  
+```{r}
+  Run the mito import of the pipeline based on these different files.
+  Take main exported scientificNameTable_FINAL, copy, save to "scientificNameTable_FINAL_GeneraSpeciesDatabase_RegionPriority.xlsx"
+  Append the mitogenome results from each prioritization run with "_midPriority", "_lowestPriority_Precision"
+  Run R script below for adding prioritization code and export
+##
+
+  
+  
+  
+##
+  
+  
+  
+
+PRIORITY <- read_xlsx(here("export","scientificNameTable_FINAL_GeneraSpeciesDatabase_RegionPriority.xlsx"), na = "NA", col_types = "text")
+
+assign_priority <- function(df) {
+  df$priority <- NA_integer_
+  
+  other_mito_cols <- c(
+    "linear_noClaim_verified_subTreeHits", "linear_noClaim_unverified_subTreeHits",
+    "linear_complete_verified_subTreeHits", "circular_noClaim_verified_subTreeHits",
+    "circular_claimComplete_verified_subTreeHits", "linear_claimComplete_verified_subTreeHits",
+    "linear_complete_unverified_subTreeHits", "circular_noClaim_unverified_subTreeHits"
+  )
+  
+  good_mito_cols <- c("circular_complete_verified_subTreeHits", "circular_complete_unverified_subTreeHits")
+  
+  all_mito_cols <- c("linear_noClaim_verified_subTreeHits", "linear_noClaim_unverified_subTreeHits",
+    "linear_complete_verified_subTreeHits", "circular_noClaim_verified_subTreeHits",
+    "circular_claimComplete_verified_subTreeHits", "linear_claimComplete_verified_subTreeHits",
+    "linear_complete_unverified_subTreeHits", "circular_noClaim_unverified_subTreeHits", "circular_complete_verified_subTreeHits", "circular_complete_unverified_subTreeHits"
+    )
+  
+  # Priority 1
+  df$priority[is.na(df$identifier) & is.na(df$accepted_NCBI)] <- 1
+  
+  # Priority 2
+  df$priority[
+    is.na(df$priority) &
+    is.na(df$high_potential_sra_subTreeHits) &
+    rowSums(!is.na(df[, all_mito_cols])) == 0
+  ] <- 2
+  
+  # Priority 3
+  df$priority[
+    is.na(df$priority) &
+    rowSums(!is.na(df[, all_mito_cols])) == 0 &
+    !is.na(df$high_potential_sra_subTreeHits)
+  ] <- 3
+  
+  # Priority 4
+  df$priority[
+    is.na(df$priority) &
+    rowSums(!is.na(df[, other_mito_cols])) > 0 &
+    rowSums(!is.na(df[, good_mito_cols])) == 0
+  ] <- 4
+  
+  # Priority 5
+  df$priority[
+    is.na(df$priority)
+  ] <- 5
+  
+  # Priority 6
+  df$priority[
+    rowSums(!is.na(df[, good_mito_cols])) > 0 &
+    !is.na(df$circular_complete_verified_subTreeHits_midPriority_RegionRep) &
+    is.na(df$circular_complete_verified_subTreeHits_lowestPriority_Precision)
+  ] <- 6
+
+  # Priority 7
+  df$priority[
+    !is.na(df$circular_complete_verified_subTreeHits_lowestPriority_Precision)
+  ] <- 7
+  
+  return(df)
+}
+
+
+PRIORITY <- assign_priority(PRIORITY)
+
+PRIORITY$priority_label <- factor(PRIORITY$priority, levels = 1:7, labels = c(
+  "never_sequenced", "sequenced_no_mito_no_SRA", "sequenced_SRA_only", 
+  "sequenced_low_conf_mito", "sequenced_good_mito_global", 
+  "sequenced_good_mito_regional", "sequenced_good_mito_precise"
+))
+
+write.table(PRIORITY, file=here("export/scientificNameTable_FINAL_GeneraSpeciesDatabase_PRIORITYadded.txt"), sep='\t', quote=FALSE, row.names=FALSE, col.names = TRUE)
+```
